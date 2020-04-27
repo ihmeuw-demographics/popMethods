@@ -7,8 +7,8 @@ Authors@R: c(person("Charlton", "Callender", email = "chacalle@uw.edu", role = "
              person("Haidong", "Wang", email = "haidong@uw.edu", role = "cre"),
              person("Institute for Health Metrics and Evaluation", role = c("cph", "fnd")))
 Description: populationMethods includes functions for 1) assessing the quality 
-of population data and correcting for common biases and 2) estimating population
-size and distribution.
+  of population data and correcting for common biases and 2) estimating population
+  size and distribution.
 URL: https://github.com/ihmeuw-demographics/populationMethods/
 License: GPL-3
 Encoding: UTF-8
