@@ -1,0 +1,27 @@
+Package: populationMethods
+Title: Methods for Population Estimation
+Version: 0.0.0.9000
+Authors@R: c(person("Charlton", "Callender", email = "chacalle@uw.edu", role = "aut"),
+             person("Katie", "Paulson", email = "krpaul@uw.edu", role = "aut"),
+             person("Spencer", "Pease", email = "spease@uw.edu", role = "aut"),
+             person("Haidong", "Wang", email = "haidong@uw.edu", role = "cre"),
+             person("Institute for Health Metrics and Evaluation", role = c("cph", "fnd")))
+Description: populationMethods includes functions for 1) assessing the quality 
+of population data and correcting for common biases and 2) estimating population
+size and distribution.
+URL: https://github.com/ihmeuw-demographics/populationMethods/
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+Suggests: 
+    testthat,
+    knitr,
+    rmarkdown,
+    spelling,
+    covr
+RoxygenNote: 7.0.2
+VignetteBuilder: knitr
+Language: en-US
+Imports: 
+    data.table
