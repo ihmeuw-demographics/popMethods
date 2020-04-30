@@ -1,0 +1,10 @@
+^popMethods\.Rproj$
+^\.Rproj\.user$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^LICENSE\.md$
+^codecov\.yml$
+^\.github/workflows/pkgdown\.yaml$
+^\.github/workflows/test-coverage\.yaml$
+^\.github/workflows/check-standard\.yaml$
