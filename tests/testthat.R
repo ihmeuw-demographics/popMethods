@@ -1,4 +1,4 @@
 library(testthat)
-library(populationMethods)
+library(popMethods)
 
-test_check("populationMethods")
+test_check("popMethods")

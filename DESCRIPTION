@@ -1,4 +1,4 @@
-Package: populationMethods
+Package: popMethods
 Title: Methods for Population Estimation
 Version: 0.0.0.9000
 Authors@R: c(person("Charlton", "Callender", email = "chacalle@uw.edu", role = "aut"),
@@ -6,10 +6,10 @@ Authors@R: c(person("Charlton", "Callender", email = "chacalle@uw.edu", role = "
              person("Spencer", "Pease", email = "spease@uw.edu", role = "aut"),
              person("Haidong", "Wang", email = "haidong@uw.edu", role = "cre"),
              person("Institute for Health Metrics and Evaluation", role = c("cph", "fnd")))
-Description: populationMethods includes functions for 1) assessing the quality 
+Description: popMethods includes functions for 1) assessing the quality
   of population data and correcting for common biases and 2) estimating population
   size and distribution.
-URL: https://github.com/ihmeuw-demographics/populationMethods/
+URL: https://github.com/ihmeuw-demographics/popMethods/
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
