@@ -42,6 +42,7 @@ Imports:
     hierarchyUtils,
     demUtils
 Remotes:
+    ihmeuw-demographics/demCore,
     ihmeuw-demographics/hierarchyUtils,
     ihmeuw-demographics/demUtils,
     ihmeuw-demographics/demViz
