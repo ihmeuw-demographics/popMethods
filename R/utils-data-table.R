@@ -10,3 +10,16 @@
 #
 #' @import data.table
 NULL
+
+# this is needed for non-standard evaluation in data.table (and some other
+# packages). Multiple links suggest using `utils::globalVariables` to remove
+# notes when checking the package.
+# https://www.r-bloggers.com/no-visible-binding-for-global-variable/
+# https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when
+# https://community.rstudio.com/t/how-to-solve-no-visible-binding-for-global-variable-note/28887
+utils::globalVariables(c("initial", "value", "parameter", "parameters",
+                         "method",
+                         "original_draw", "draw", "chain_draw", "chain",
+                         "year_start", "year_end", "year_index",
+                         "sex", "sex_index",
+                         "age_start", "age_index"))

@@ -19,9 +19,48 @@ Suggests:
     knitr,
     rmarkdown,
     spelling,
-    covr
-RoxygenNote: 7.0.2
+    covr,
+    bayesplot,
+    ggplot2,
+    demViz
+RoxygenNote: 7.1.0
 VignetteBuilder: knitr
 Language: en-US
 Imports: 
-    data.table
+    data.table,
+    assertive,
+    assertthat,
+    assertable,
+    methods,
+    Matrix,
+    Rcpp (>= 0.12.0),
+    rstan (>= 2.18.1),
+    rstantools (>= 2.0.0),
+    TMB (>= 1.7.16),
+    optimx,
+    demCore,
+    hierarchyUtils,
+    demUtils
+Remotes:
+    ihmeuw-demographics/hierarchyUtils,
+    ihmeuw-demographics/demUtils,
+    ihmeuw-demographics/demViz
+Biarch: true
+Depends: 
+    R (>= 3.4.0)
+LinkingTo: 
+    BH (>= 1.66.0),
+    Rcpp (>= 0.12.0),
+    RcppEigen (>= 0.3.3.3.0),
+    rstan (>= 2.18.1),
+    StanHeaders (>= 2.18.0),
+    TMB
+SystemRequirements: GNU make
+Collate: 
+    'popMethods.R'
+    'popReconstruct_fit.R'
+    'popReconstruct_draws.R'
+    'popReconstruct_hyperparameters.R'
+    'popReconstruct_settings.R'
+    'stanmodels.R'
+    'utils-data-table.R'
