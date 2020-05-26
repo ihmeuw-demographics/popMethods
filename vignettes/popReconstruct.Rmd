@@ -274,12 +274,16 @@ demViz::plot_line_graph(
   plot_title = "Population",
   point_col = "point",
   scale_manual = list(
-    colour_col = "method",
-    colour_legend_title = "Method",
-    colour_scale = manual_colour_scale,
-    fill_col = "method",
-    fill_legend_title = "Method",
-    fill_scale = manual_colour_scale
+    colour = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    ),
+    fill = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    )
   )
 )
 ```
@@ -300,12 +304,16 @@ demViz::plot_line_graph(
   plot_title = "Age-specific fertility rate",
   facet_form = "age_name ~ .",
   scale_manual = list(
-    colour_col = "method",
-    colour_legend_title = "Method",
-    colour_scale = manual_colour_scale,
-    fill_col = "method",
-    fill_legend_title = "Method",
-    fill_scale = manual_colour_scale
+    colour = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    ),
+    fill = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    )
   )
 )
 ```
@@ -323,12 +331,16 @@ demViz::plot_line_graph(
   plot_title = "Baseline Population",
   facet_type = NULL,
   scale_manual = list(
-    colour_col = "method",
-    colour_legend_title = "Method",
-    colour_scale = manual_colour_scale,
-    fill_col = "method",
-    fill_legend_title = "Method",
-    fill_scale = manual_colour_scale
+    colour = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    ),
+    fill = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    )
   )
 )
 ```
@@ -348,12 +360,16 @@ demViz::plot_line_graph(
   y_ub = "q97.5",
   plot_title = "Survivorship ratio",
   scale_manual = list(
-    colour_col = "method",
-    colour_legend_title = "Method",
-    colour_scale = manual_colour_scale,
-    fill_col = "method",
-    fill_legend_title = "Method",
-    fill_scale = manual_colour_scale
+    colour = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    ),
+    fill = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    )
   )
 )
 ```
@@ -374,12 +390,16 @@ p <- demViz::plot_line_graph(
   plot_title = "Net-migration proportion",
   facet_scales = "fixed",
   scale_manual = list(
-    colour_col = "method",
-    colour_legend_title = "Method",
-    colour_scale = manual_colour_scale,
-    fill_col = "method",
-    fill_legend_title = "Method",
-    fill_scale = manual_colour_scale
+    colour = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    ),
+    fill = list(
+      col = "method",
+      legend_title = "Method",
+      scale = manual_colour_scale
+    )
   )
 )
 p <- p + geom_hline(yintercept = 0, linetype = "dashed")
