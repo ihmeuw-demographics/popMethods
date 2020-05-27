@@ -353,6 +353,12 @@ extract_tmb_draws <- function(fit, inputs, settings) {
     settings$n_draws,
     draw_col_name = "draw"
   )
+  # create 'age_end' column
+  hierarchyUtils::gen_end(
+    dt = pop_draws,
+    id_cols = c("year", "sex", "age_start", "draw"),
+    col_stem = "age"
+  )
 
   # format variance draws
   variance_draws <- data.table(as.matrix(fixed_draws))
@@ -582,6 +588,13 @@ popReconstruct_prior_draws <- function(inputs,
                 "population constraint created"))
   }
 
+  # create 'age_end' column
+  hierarchyUtils::gen_end(
+    dt = all_pop_draws,
+    id_cols = c("year", "sex", "age_start", "draw"),
+    col_stem = "age"
+  )
+
   # combine all results together
   draws <- list(variance = all_variance,
                 population = all_pop_draws)
@@ -627,9 +640,28 @@ calculate_spline_offset_draws <- function(offset_draws,
       years = detailed_settings[[comp]][["years"]],
       ages = detailed_settings[[comp]][["ages"]]
     ), by = c(draw_col_name, if ("sex" %in% names(offsets)) "sex")]
+
+    if ("year_start" %in% names(spline_offsets)) {
+      hierarchyUtils::gen_end(
+        dt = spline_offsets,
+        id_cols = setdiff(names(offsets), c("value", "year_end", "age_end")),
+        col_stem = "year",
+        right_most_endpoint = max(offsets$year_end)
+      )
+    }
+
+    if ("age_start" %in% names(spline_offsets)) {
+      hierarchyUtils::gen_end(
+        dt = spline_offsets,
+        id_cols = setdiff(names(offsets), c("value", "year_end", "age_end")),
+        col_stem = "age",
+        right_most_endpoint = max(offsets$age_end)
+      )
+    }
     data.table::setkeyv(spline_offsets, setdiff(names(spline_offsets), "value"))
     return(spline_offsets)
   })
+
   names(spline_offset_draws) <- names(offset_draws)
   return(spline_offset_draws)
 }
@@ -681,19 +713,15 @@ predict_spline_offset <- function(dt, B_t = NULL, B_a = NULL,
     rownames(spline_offset_matrix) <- 0
   }
 
-  calendar_interval_input <- "year_end" %in% names(dt)
-
   # reformat the spline offset matrix from matrix to data.table
   spline_offset <- demCore:::matrix_to_dt(
     mdt = spline_offset_matrix,
-    year_right_most_endpoint = ifelse(calendar_interval_input,
-                                      max(dt$year_end), min(years)),
-    age_right_most_endpoint = ifelse(!is.null(ages), max(dt$age_end), Inf),
+    gen_end_interval_col = FALSE,
     validate_arguments = FALSE
   )
 
+  calendar_interval_input <- "year_end" %in% names(dt)
   if (!calendar_interval_input) {
-    spline_offset[, year_end := NULL]
     setnames(spline_offset, "year_start", "year")
   }
 
@@ -771,7 +799,9 @@ ccmpp_draws <- function(input_draws,
       ),
       settings = settings,
       value_col = "value",
-      assert_positive_pop = FALSE
+      assert_positive_pop = FALSE,
+      validate_arguments = FALSE,
+      gen_end_interval_col = FALSE
     )
     pop[, draw := i]
     return(pop)
