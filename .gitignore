@@ -1,3 +1,15 @@
+# locally built pkgdown site
+docs
+
+# ignore compiled models
+src/RcppExports.cpp
+src/stanExports*.cc
+src/stanExports*.h
+src/*.o
+src/*.so
+src/TMB/*.o
+src/TMB/*.so
+
 # Created by https://www.gitignore.io/api/r
 # Edit at https://www.gitignore.io/?templates=r
 
