@@ -1,3 +1,6 @@
+# locally built pkgdown site
+docs
+
 # ignore compiled models
 src/RcppExports.cpp
 src/stanExports*.cc
