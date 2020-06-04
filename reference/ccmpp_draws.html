@@ -6,7 +6,8 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Function reference • popMethods</title>
+<title>Helper function to do ccmpp at the draw level using
+<code><a href='https://rdrr.io/pkg/demCore/man/ccmpp.html'>demCore::ccmpp()</a></code> — ccmpp_draws • popMethods</title>
 
 
 <!-- jquery -->
@@ -39,7 +40,10 @@
 
 
 
-<meta property="og:title" content="Function reference" />
+<meta property="og:title" content="Helper function to do ccmpp at the draw level using
+<code><a href='https://rdrr.io/pkg/demCore/man/ccmpp.html'>demCore::ccmpp()</a></code> — ccmpp_draws" />
+<meta property="og:description" content="Helper function to do ccmpp at the draw level using
+demCore::ccmpp()" />
 
 
 
@@ -58,7 +62,7 @@
   </head>
 
   <body data-spy="scroll" data-target="#toc">
-    <div class="container template-reference-index">
+    <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -117,120 +121,57 @@
       </header>
 
 <div class="row">
-  <div class="contents col-md-9">
+  <div class="col-md-9 contents">
     <div class="page-header">
-      <h1>Reference</h1>
+    <h1>Helper function to do ccmpp at the draw level using
+<code><a href='https://rdrr.io/pkg/demCore/man/ccmpp.html'>demCore::ccmpp()</a></code></h1>
+    <small class="dont-index">Source: <a href='https://github.com/ihmeuw-demographics/popMethods/blob/master/R/popReconstruct_draws.R'><code>R/popReconstruct_draws.R</code></a></small>
+    <div class="hidden name"><code>ccmpp_draws.Rd</code></div>
     </div>
 
-    <table class="ref-index">
+    <div class="ref-description">
+    <p>Helper function to do ccmpp at the draw level using
+<code><a href='https://rdrr.io/pkg/demCore/man/ccmpp.html'>demCore::ccmpp()</a></code></p>
+    </div>
 
-    <colgroup>
-      
-      <col class="alias" />
-      <col class="title" />
-    </colgroup>
+    <pre class="usage"><span class='fu'>ccmpp_draws</span>(<span class='no'>input_draws</span>, <span class='no'>settings</span>, <span class='no'>n_draws</span>, <span class='no'>draw_col_name</span>)</pre>
 
-    <tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-all-functions" class="hasAnchor"><a href="#section-all-functions" class="anchor"></a>All functions</h2>
-          <p class="section-desc"></p>
-        </th>
-      </tr>
-      
-      
-    </tbody><tbody>
-      
-      
-      <tr>
-        
-        <td>
-          <p><code><a href="calculate_beta.html">calculate_beta()</a></code> </p>
-        </td>
-        <td><p>Calculate the beta hyperparameter for popReconstruct variance
-parameters.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="calculate_ccmpp_input_draws.html">calculate_ccmpp_input_draws()</a></code> </p>
-        </td>
-        <td><p>Helper function to predict ccmpp inputs estimates from spline offsets
-and initial estimates.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="calculate_spline_offset_draws.html">calculate_spline_offset_draws()</a></code> </p>
-        </td>
-        <td><p>Helper function to calculate spline offsets for all ccmpp inputs</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="ccmpp_draws.html">ccmpp_draws()</a></code> </p>
-        </td>
-        <td><p>Helper function to do ccmpp at the draw level using
-<code><a href='https://rdrr.io/pkg/demCore/man/ccmpp.html'>demCore::ccmpp()</a></code></p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="create_detailed_settings.html">create_detailed_settings()</a></code> </p>
-        </td>
-        <td><p>Helper function to create a detailed list of settings specific to
-popReconstruct ccmpp inputs and outputs.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="create_optional_settings.html">create_optional_settings()</a></code> </p>
-        </td>
-        <td><p>Validate or generate the optional settings used in the popReconstruct
-model</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="extract_stan_draws.html">extract_stan_draws()</a></code> </p>
-        </td>
-        <td><p>Helper function to extract draws from popReconstruct stan fits</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="extract_tmb_draws.html">extract_tmb_draws()</a></code> </p>
-        </td>
-        <td><p>Extract draws from the popReconstruct model TMB fit</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="popMethods.html">popMethods</a></code> </p>
-        </td>
-        <td><p>Methods for Population Estimation</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="popReconstruct_fit.html">popReconstruct_fit()</a></code> <code><a href="popReconstruct_fit.html">popReconstruct_posterior_draws()</a></code> <code><a href="popReconstruct_fit.html">popReconstruct_prior_draws()</a></code> <code><a href="popReconstruct_fit.html">popReconstruct_summarize_draws()</a></code> </p>
-        </td>
-        <td><p>Implement the Bayesian hierarchical PopReconstruct model</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="popReconstruct_hyperparameters.html">popReconstruct_hyperparameters()</a></code> </p>
-        </td>
-        <td><p>Calculate Hyperparameters for the popReconstruct Model</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="predict_spline_offset.html">predict_spline_offset()</a></code> </p>
-        </td>
-        <td><p>Helper function to predict spline offset for one ccmpp input component</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="rbindlist_dts.html">rbindlist_dts()</a></code> </p>
-        </td>
-        <td><p>Helper function for rbinding each [<code>data.table()</code>] nested within a
-[<code>list()</code>]</p></td>
-      </tr>
-    </tbody>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>input_draws</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>] of [<code>data.table()</code>]<br />
+Draws of ccmpp inputs as returned by <code><a href='calculate_ccmpp_input_draws.html'>calculate_ccmpp_input_draws()</a></code>.</p></td>
+    </tr>
+    <tr>
+      <th>settings</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>]<br />
+Named list of settings for running the popReconstruct model with. The
+required settings are the same as those required for <code><a href='https://rdrr.io/pkg/demCore/man/ccmpp.html'>demCore::ccmpp()</a></code>,
+see <strong>Section: Settings</strong> for these. The optional settings specific to
+popReconstruct are described in
+<strong>Section: Optional popReconstruct Settings</strong></p></td>
+    </tr>
+    <tr>
+      <th>n_draws</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/integer.html'>integer()</a></code>]<br />
+Number of draws that are included in each ccmpp input [<code>data.table()</code>].</p></td>
+    </tr>
+    <tr>
+      <th>draw_col_name</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/character.html'>character(1)</a></code>]<br />
+Name of column in <code>offset_draws</code> [<code>data.table()</code>] that corresponds to
+draw index</p></td>
+    </tr>
     </table>
-  </div>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>[<code>data.table()</code>] containing draws of projected population
+estimates.</p>
+
+  </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
       <h2 data-toc-skip>Contents</h2>
