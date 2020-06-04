@@ -10,7 +10,7 @@ create_detailed_settings(settings)
 \arguments{
 \item{settings}{[\code{list()}]\cr
 Named list of settings for running the popReconstruct model with. The
-required settings are the same as those required for \code{demCore::ccmpp()},
+required settings are the same as those required for \code{\link[demCore:ccmpp]{demCore::ccmpp()}},
 see \strong{Section: Settings} for these. The optional settings specific to
 popReconstruct are described in
 \strong{Section: Optional popReconstruct Settings}}

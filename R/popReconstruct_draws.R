@@ -1,5 +1,5 @@
 #' @export
-#' @rdname popReconstruct
+#' @rdname popReconstruct_fit
 #' @include popReconstruct_fit.R
 popReconstruct_posterior_draws <- function(fit,
                                            inputs,
@@ -55,7 +55,7 @@ popReconstruct_posterior_draws <- function(fit,
 #'
 #' @inheritParams popReconstruct_posterior_draws
 #'
-#' @seealso `popReconstruct_posterior_draws`
+#' @seealso [`popReconstruct_posterior_draws()`]
 extract_stan_draws <- function(fit, inputs, settings) {
 
   # add optional settings needed for popReconstruct
@@ -212,13 +212,15 @@ extract_stan_draws <- function(fit, inputs, settings) {
 #'
 #' @inheritParams popReconstruct_posterior_draws
 #'
-#' @seealso `popReconstruct_posterior_draws`
+#' @seealso [`popReconstruct_posterior_draws()`]
 extract_tmb_draws <- function(fit, inputs, settings) {
 
   # add optional settings needed for popReconstruct
   settings <- copy(settings)
   settings <- create_optional_settings(settings, inputs)
   detailed_settings <- create_detailed_settings(settings)
+
+  # Generate draws for random and fixed parameters --------------------------
 
   # draw from a multivariate normal distribution given the mean and precision
   # matrix for all parameters
@@ -246,6 +248,21 @@ extract_tmb_draws <- function(fit, inputs, settings) {
     prec = fixed_prec,
     n_draws = settings$n_draws
   )
+
+  # Format the offset and variance draws ------------------------------------
+
+  # format variance draws
+  variance_draws <- data.table(as.matrix(fixed_draws))
+  variance_draws[, parameter := gsub("log_sigma2_", "", names(fixed_mean))]
+  variance_draws <- melt(
+    variance_draws,
+    id.vars = "parameter",
+    variable.name = "draw",
+    value.name = "value"
+  )
+  variance_draws[, draw := as.integer(draw)]
+  variance_draws[, value := exp(value)]
+  setkeyv(variance_draws, c("parameter", "draw"))
 
   format_draws <- function(comp, param, settings, comp_detailed_settings) {
 
@@ -333,7 +350,8 @@ extract_tmb_draws <- function(fit, inputs, settings) {
   })
   names(offset_draws) <- names(inputs)
 
-  # calculate spline offset draws
+  # Calculate derived parameters --------------------------------------------
+
   spline_offset_draws <- calculate_spline_offset_draws(
     offset_draws,
     detailed_settings,
@@ -360,18 +378,7 @@ extract_tmb_draws <- function(fit, inputs, settings) {
     col_stem = "age"
   )
 
-  # format variance draws
-  variance_draws <- data.table(as.matrix(fixed_draws))
-  variance_draws[, parameter := gsub("log_sigma2_", "", names(fixed_mean))]
-  variance_draws <- melt(
-    variance_draws,
-    id.vars = "parameter",
-    variable.name = "draw",
-    value.name = "value"
-  )
-  variance_draws[, draw := as.integer(draw)]
-  variance_draws[, value := exp(value)]
-  setkeyv(variance_draws, c("parameter", "draw"))
+  # Combine results ---------------------------------------------------------
 
   draws <- list(variance = variance_draws,
                 population = pop_draws)
@@ -383,7 +390,7 @@ extract_tmb_draws <- function(fit, inputs, settings) {
 }
 
 #' @export
-#' @rdname popReconstruct
+#' @rdname popReconstruct_fit
 popReconstruct_prior_draws <- function(inputs,
                                        hyperparameters,
                                        settings,
@@ -414,7 +421,6 @@ popReconstruct_prior_draws <- function(inputs,
   detailed_settings <- create_detailed_settings(settings)
 
   validate_popReconstruct_hyperparameters(hyperparameters, inputs, settings)
-
 
   # Sample from prior distribution ------------------------------------------
 
@@ -618,7 +624,8 @@ popReconstruct_prior_draws <- function(inputs,
 #' @title Helper function to calculate spline offsets for all ccmpp inputs
 #'
 #' @param offset_draws \[`list()`\] of \[`data.table()`\]\cr
-#'   Draws of directly modeled offset parameters for all ccmpp inputs.
+#'   Draws of directly modeled offset parameters for all ccmpp inputs as
+#'   prepared in the `popReconstruct_*_draws()` functions.
 #' @param detailed_settings \[`list()`\]\cr
 #'   Detailed settings for each ccmpp input and 'population'.
 #' @param draw_col_name \[`character(1)`\]\cr
@@ -732,7 +739,7 @@ predict_spline_offset <- function(dt, B_t = NULL, B_a = NULL,
 #'   and initial estimates.
 #'
 #' @param spline_offset_draws \[`list()`\] of \[`data.table()`\]\cr
-#'   Draws of spline offsets as returned by `calculate_spline_offset_draws`.
+#'   Draws of spline offsets as returned by [`calculate_spline_offset_draws()`].
 #' @inheritParams popReconstruct_fit
 #' @inheritParams calculate_spline_offset_draws
 #'
@@ -772,10 +779,11 @@ calculate_ccmpp_input_draws <- function(spline_offset_draws,
   return(ccmpp_input_draws)
 }
 
-#' @title Helper function to do ccmpp at the draw level using `demCore::ccmpp`
+#' @title Helper function to do ccmpp at the draw level using
+#'   [`demCore::ccmpp()`]
 #'
 #' @param input_draws \[`list()`\] of \[`data.table()`\]\cr
-#'   Draws of ccmpp inputs as returned by `calculate_ccmpp_input_draws`.
+#'   Draws of ccmpp inputs as returned by [`calculate_ccmpp_input_draws()`].
 #' @inheritParams popReconstruct_fit
 #' @param n_draws \[`integer()`\]\cr
 #'   Number of draws that are included in each ccmpp input \[`data.table()`\].
@@ -815,16 +823,45 @@ ccmpp_draws <- function(input_draws,
 #' @title Helper function for rbinding each \[`data.table()`\] nested within a
 #'   \[`list()`\]
 #'
-#' @description Can input multiple lists of data.tables that will be combined
+#' @description Inputs multiple lists of data.tables that will be combined
 #'   into one list of data.tables. data.tables are matched by the name of each
-#'   element of each list.
+#'   element of each list. This is different than [`data.table::rbindlist()`]
+#'   which inputs one list of data.tables and returns one combined data.table.
 #'
 #' @param ... multiple \[`list()`\] of many \[`data.table()`\]\cr
-#'   as returned by `popReconstruct_draws` or `popReconstruct_prior_draws`.
+#'   as returned by [`popReconstruct_posterior_draws()`] or
+#'   [`popReconstruct_prior_draws()`].
 #'
 #' @return one \[`list()`\] of many \[`data.table()`\]
 #'
 #' @family popReconstruct
+#'
+#' @examples
+#' list_dt1 <- list(
+#'   "population" = data.table::data.table(
+#'     sex = c("female", "male"),
+#'     value = 2,
+#'     method = 1
+#' ),
+#'   "deaths" = data.table::data.table(
+#'     sex = c("female", "male"),
+#'     value = 4,
+#'     method = 1
+#'   )
+#' )
+#' list_dt2 <- list(
+#'   "population" = data.table::data.table(
+#'     sex = c("female", "male"),
+#'     value = 2,
+#'     method = 2
+#'   ),
+#'   "deaths" = data.table::data.table(
+#'     sex = c("female", "male"),
+#'     value = 4,
+#'     method = 2
+#'   )
+#' )
+#' combined_list_dt <- rbindlist_dts(list_dt1, list_dt2)
 #'
 #' @export
 rbindlist_dts <- function(...) {
@@ -854,7 +891,7 @@ rbindlist_dts <- function(...) {
 }
 
 #' @export
-#' @rdname popReconstruct
+#' @rdname popReconstruct_fit
 popReconstruct_summarize_draws <- function(draws,
                                            summarize_cols = c("chain", "chain_draw", "draw"),
                                            value_col = "value",

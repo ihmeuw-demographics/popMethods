@@ -2,17 +2,18 @@
 % Please edit documentation in R/popReconstruct_draws.R
 \name{ccmpp_draws}
 \alias{ccmpp_draws}
-\title{Helper function to do ccmpp at the draw level using \code{demCore::ccmpp}}
+\title{Helper function to do ccmpp at the draw level using
+\code{\link[demCore:ccmpp]{demCore::ccmpp()}}}
 \usage{
 ccmpp_draws(input_draws, settings, n_draws, draw_col_name)
 }
 \arguments{
 \item{input_draws}{[\code{list()}] of [\code{data.table()}]\cr
-Draws of ccmpp inputs as returned by \code{calculate_ccmpp_input_draws}.}
+Draws of ccmpp inputs as returned by \code{\link[=calculate_ccmpp_input_draws]{calculate_ccmpp_input_draws()}}.}
 
 \item{settings}{[\code{list()}]\cr
 Named list of settings for running the popReconstruct model with. The
-required settings are the same as those required for \code{demCore::ccmpp()},
+required settings are the same as those required for \code{\link[demCore:ccmpp]{demCore::ccmpp()}},
 see \strong{Section: Settings} for these. The optional settings specific to
 popReconstruct are described in
 \strong{Section: Optional popReconstruct Settings}}
@@ -29,5 +30,6 @@ draw index}
 estimates.
 }
 \description{
-Helper function to do ccmpp at the draw level using \code{demCore::ccmpp}
+Helper function to do ccmpp at the draw level using
+\code{\link[demCore:ccmpp]{demCore::ccmpp()}}
 }

@@ -12,7 +12,8 @@ calculate_spline_offset_draws(
 }
 \arguments{
 \item{offset_draws}{[\code{list()}] of [\code{data.table()}]\cr
-Draws of directly modeled offset parameters for all ccmpp inputs.}
+Draws of directly modeled offset parameters for all ccmpp inputs as
+prepared in the \verb{popReconstruct_*_draws()} functions.}
 
 \item{detailed_settings}{[\code{list()}]\cr
 Detailed settings for each ccmpp input and 'population'.}

@@ -60,7 +60,7 @@ variance of each model component.}
 
 \item{settings}{[\code{list()}]\cr
 Named list of settings for running the popReconstruct model with. The
-required settings are the same as those required for \code{demCore::ccmpp()},
+required settings are the same as those required for \code{\link[demCore:ccmpp]{demCore::ccmpp()}},
 see \strong{Section: Settings} for these. The optional settings specific to
 popReconstruct are described in
 \strong{Section: Optional popReconstruct Settings}}
@@ -73,13 +73,14 @@ Name of the column containing the value of interest in each of the
 Statistical modeling software to fit popReconstruct with. Either 'stan' or
 'tmb' are available.}
 
-\item{...}{For \code{popReconstruct_fit} additional arguments to pass to
-\code{rstan::sampling} if fitting the model with 'stan' or \code{optimx::optimx} if
-fitting the model with 'tmb'. For \code{popReconstruct_summarize_draws}
-additional arguments to pass to \code{demUtils::summarize_dt}.}
+\item{...}{For \code{\link[=popReconstruct_fit]{popReconstruct_fit()}} additional arguments to pass to
+\code{\link[rstan:sampling]{rstan::sampling()}} if fitting the model with 'stan' or
+\code{\link[optimx:optimx]{optimx::optimx()}} if fitting the model with 'tmb'. For
+\code{\link[=popReconstruct_summarize_draws]{popReconstruct_summarize_draws()}} additional arguments to pass to
+\code{\link[demUtils:summarize_dt]{demUtils::summarize_dt()}}.}
 
 \item{fit}{[\code{stanfit(1)}] or [\code{sdreport(1)}]\cr
-Model fit object returned by \code{popReconstruct_fit}.}
+Model fit object returned by \code{\link[=popReconstruct_fit]{popReconstruct_fit()}}.}
 
 \item{method_name}{[\code{character(1)}]\cr
 Description to assign to column 'method' in each returned data.table.}
@@ -89,7 +90,7 @@ number of draws to sample from the prior at once.}
 
 \item{draws}{[\code{list()}] of [\code{data.table()}]\cr
 Draws from the posterior distribution of the popReconstruct model as
-returned by \code{popReconstruct_posterior_draws}.}
+returned by \code{\link[=popReconstruct_posterior_draws]{popReconstruct_posterior_draws()}}.}
 
 \item{summarize_cols}{[\code{character()}]\cr
 The \code{id_cols} that should be collapsed and to calculate summary statistics
@@ -102,27 +103,28 @@ ccmpp input preliminary estimates of sex-ratio at birth, fertility,
 mortality, migration, and a baseline population with population data while
 accounting for measurement error in these initial estimates.
 
-\code{popReconstruct_fit} fits the model using \href{https://mc-stan.org/}{Stan} or
+\code{\link[=popReconstruct_fit]{popReconstruct_fit()}} fits the model using \href{https://mc-stan.org/}{Stan} or
 \href{https://kaskr.github.io/adcomp/Introduction.html}{TMB}.
 
-\code{popReconstruct_posterior_draws} produces draws from the posterior
+\code{\link[=popReconstruct_posterior_draws]{popReconstruct_posterior_draws()}} produces draws from the posterior
 distribution.
 
-\code{popReconstruct_prior_draws} produces draws from the prior distribution.
+\code{\link[=popReconstruct_prior_draws]{popReconstruct_prior_draws()}} produces draws from the prior distribution.
 
-\code{popReconstruct_summarize_draws} produces summary statistics of draws from
-the popReconstruct model using \code{demUtils::summarize_dt}. The \code{summarize_cols}
-parameter should include 'chain', 'chain_draw' and 'draw' when the model was
-fit with stan and just 'draw' when the model was fit with tmb.
+\code{\link[=popReconstruct_summarize_draws]{popReconstruct_summarize_draws()}} produces summary statistics of draws from
+the popReconstruct model using \code{\link[demUtils:summarize_dt]{demUtils::summarize_dt()}}. The
+\code{summarize_cols} parameter should include 'chain', 'chain_draw' and 'draw'
+when the model was fit with stan and just 'draw' when the model was fit with
+tmb.
 }
 \section{Optional popReconstruct Settings}{
 
 \itemize{
 \item fixed_parameters: [\code{character()}]\cr
-Names of \code{ccmpp} input components that should be fixed in the model,
-corresponds to the names of the \code{input} list. Defaults to empty if
-fitting the model for both sexes, if only 'female' then defaults to
-'srb'.
+Names of \code{\link[demCore:ccmpp]{demCore::ccmpp()}} input components that should be fixed in
+the model, corresponds to the names of the \code{input} list. Defaults to
+empty if fitting the model for both sexes, if only 'female' then defaults
+to 'srb'.
 \item n_draws: [\code{character()}]\cr
 The number of draws to take from the output posterior distribution. If
 fitting the model with stan then the number of draws is dictated by
@@ -147,7 +149,7 @@ without linear B-splines to reduce age-specific parameters.
 
 If fit using 'stan' an object of class \code{stanfit} and if fit using 'tmb' an
 object of class \code{sdreport}. Either represents the fitted results that can be
-extracted using \code{popReconstruct_posterior_draws()}. Stan has helper packages
+extracted using \code{\link[=popReconstruct_posterior_draws]{popReconstruct_posterior_draws()}}. Stan has helper packages
 that can be used to explore the model fit through \code{shinystan}, \code{bayesplot},
 etc.
 }
@@ -155,7 +157,7 @@ etc.
 \section{\code{popReconstruct_posterior_draws} and \code{popReconstruct_prior_draws} Value}{
 
 
-\code{popReconstruct_posterior_draws} and \code{popReconstruct_prior_draws} return a
+\code{\link[=popReconstruct_posterior_draws]{popReconstruct_posterior_draws()}} and \code{\link[=popReconstruct_prior_draws]{popReconstruct_prior_draws()}} return a
 named [\code{list()}] of [\code{data.table()}] for draws from the posterior and
 prior distribution respectively for each ccmpp input component along with the
 associated offset and spline offset parameters. Draws for the 'variance' and
@@ -217,7 +219,7 @@ of the input \code{draws}. Each \code{\link[=data.table]{data.table()}} will hav
 component (minus the \code{summarize_cols}) plus summary statistic columns.
 The summary statistic columns have the same name as each function specified
 in \code{summary_fun} and the quantiles are named like 'q_(\code{probs} * 100)'. See
-\code{demUtils::summarize_dt} for more information.
+\verb{[demUtils::summarize_dt()}] for more information.
 }
 
 \section{Settings}{
@@ -396,9 +398,13 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
 \href{https://github.com/markalava/Bayesian-Reconstruction}{markalava/Bayesian-Reconstruction github repo}
 }
 \seealso{
-demCore::ccmpp
+\code{\link[demCore:ccmpp]{demCore::ccmpp()}}
 
-demUtils::summarize_dt
+\code{\link[demUtils:summarize_dt]{demUtils::summarize_dt()}}
+
+\code{\link[=rbindlist_dts]{rbindlist_dts()}}
+
+\code{vignette("popReconstruct")}
 
 Other popReconstruct: 
 \code{\link{popReconstruct_hyperparameters}()},

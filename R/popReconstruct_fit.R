@@ -7,18 +7,19 @@
 #' mortality, migration, and a baseline population with population data while
 #' accounting for measurement error in these initial estimates.
 #'
-#' `popReconstruct_fit` fits the model using [Stan](https://mc-stan.org/) or
+#' [`popReconstruct_fit()`] fits the model using [Stan](https://mc-stan.org/) or
 #' [TMB](https://kaskr.github.io/adcomp/Introduction.html).
 #'
-#' `popReconstruct_posterior_draws` produces draws from the posterior
+#' [`popReconstruct_posterior_draws()`] produces draws from the posterior
 #' distribution.
 #'
-#' `popReconstruct_prior_draws` produces draws from the prior distribution.
+#' [`popReconstruct_prior_draws()`] produces draws from the prior distribution.
 #'
-#' `popReconstruct_summarize_draws` produces summary statistics of draws from
-#' the popReconstruct model using `demUtils::summarize_dt`. The `summarize_cols`
-#' parameter should include 'chain', 'chain_draw' and 'draw' when the model was
-#' fit with stan and just 'draw' when the model was fit with tmb.
+#' [`popReconstruct_summarize_draws()`] produces summary statistics of draws from
+#' the popReconstruct model using [`demUtils::summarize_dt()`]. The
+#' `summarize_cols` parameter should include 'chain', 'chain_draw' and 'draw'
+#' when the model was fit with stan and just 'draw' when the model was fit with
+#' tmb.
 #'
 #' @inheritParams demCore::ccmpp
 #' @param data \[`list()`\]\cr
@@ -30,7 +31,7 @@
 #'   variance of each model component.
 #' @param settings \[`list()`\]\cr
 #'   Named list of settings for running the popReconstruct model with. The
-#'   required settings are the same as those required for `demCore::ccmpp()`,
+#'   required settings are the same as those required for [`demCore::ccmpp()`],
 #'   see **Section: Settings** for these. The optional settings specific to
 #'   popReconstruct are described in
 #'   **Section: Optional popReconstruct Settings**
@@ -39,7 +40,7 @@
 #'   'tmb' are available.
 #'
 #' @param fit \[`stanfit(1)`\] or \[`sdreport(1)`\]\cr
-#'   Model fit object returned by `popReconstruct_fit`.
+#'   Model fit object returned by [`popReconstruct_fit()`].
 #' @param method_name \[`character(1)`\]\cr
 #'   Description to assign to column 'method' in each returned data.table.
 #' @param chunk_size \[`integer(1)`\]\cr
@@ -47,22 +48,23 @@
 #'
 #' @param draws \[`list()`\] of \[`data.table()`\]\cr
 #'   Draws from the posterior distribution of the popReconstruct model as
-#'   returned by `popReconstruct_posterior_draws`.
+#'   returned by [`popReconstruct_posterior_draws()`].
 #' @inheritParams demUtils::summarize_dt
 #'
-#' @param ... For `popReconstruct_fit` additional arguments to pass to
-#'   `rstan::sampling` if fitting the model with 'stan' or `optimx::optimx` if
-#'   fitting the model with 'tmb'. For `popReconstruct_summarize_draws`
-#'   additional arguments to pass to `demUtils::summarize_dt`.
+#' @param ... For [`popReconstruct_fit()`] additional arguments to pass to
+#'   [`rstan::sampling()`] if fitting the model with 'stan' or
+#'   [`optimx::optimx()`] if fitting the model with 'tmb'. For
+#'   [`popReconstruct_summarize_draws()`] additional arguments to pass to
+#'   [`demUtils::summarize_dt()`].
 #'
 #' @inheritSection demCore::ccmpp Settings
 #'
 #' @section Optional popReconstruct Settings:
 #'   * fixed_parameters: \[`character()`\]\cr
-#'     Names of `ccmpp` input components that should be fixed in the model,
-#'     corresponds to the names of the `input` list. Defaults to empty if
-#'     fitting the model for both sexes, if only 'female' then defaults to
-#'     'srb'.
+#'     Names of [`demCore::ccmpp()`] input components that should be fixed in
+#'     the model, corresponds to the names of the `input` list. Defaults to
+#'     empty if fitting the model for both sexes, if only 'female' then defaults
+#'     to 'srb'.
 #'   * n_draws: \[`character()`\]\cr
 #'     The number of draws to take from the output posterior distribution. If
 #'     fitting the model with stan then the number of draws is dictated by
@@ -86,13 +88,13 @@
 #' @section `popReconstruct_fit` Value:
 #' If fit using 'stan' an object of class `stanfit` and if fit using 'tmb' an
 #' object of class `sdreport`. Either represents the fitted results that can be
-#' extracted using `popReconstruct_posterior_draws()`. Stan has helper packages
+#' extracted using [`popReconstruct_posterior_draws()`]. Stan has helper packages
 #' that can be used to explore the model fit through `shinystan`, `bayesplot`,
 #' etc.
 #'
 #' @section `popReconstruct_posterior_draws` and `popReconstruct_prior_draws` Value:
 #'
-#' `popReconstruct_posterior_draws` and `popReconstruct_prior_draws` return a
+#' [`popReconstruct_posterior_draws()`] and [`popReconstruct_prior_draws()`] return a
 #' named \[`list()`\] of \[`data.table()`\] for draws from the posterior and
 #' prior distribution respectively for each ccmpp input component along with the
 #' associated offset and spline offset parameters. Draws for the 'variance' and
@@ -145,7 +147,7 @@
 #' component (minus the `summarize_cols`) plus summary statistic columns.
 #' The summary statistic columns have the same name as each function specified
 #' in `summary_fun` and the quantiles are named like 'q_(`probs` * 100)'. See
-#' `demUtils::summarize_dt` for more information.
+#' `[demUtils::summarize_dt()`] for more information.
 #'
 #' @references
 #' Wheldon, Mark C., Adrian E. Raftery, Samuel J. Clark, and Patrick Gerland.
@@ -207,8 +209,10 @@
 #'   draws = draws_stan
 #' )
 #'
-#' @seealso demCore::ccmpp
-#' @seealso demUtils::summarize_dt
+#' @seealso [`demCore::ccmpp()`]
+#' @seealso [`demUtils::summarize_dt()`]
+#' @seealso [`rbindlist_dts()`]
+#' @seealso `vignette("popReconstruct")`
 #' @family popReconstruct
 #'
 #' @import Rcpp
@@ -217,7 +221,6 @@
 #' @rawNamespace useDynLib(popMethods_TMBExports)
 #'
 #' @export
-#' @rdname popReconstruct
 popReconstruct_fit <- function(inputs,
                                data,
                                hyperparameters,

@@ -9,7 +9,7 @@ calculate_ccmpp_input_draws(spline_offset_draws, inputs, detailed_settings)
 }
 \arguments{
 \item{spline_offset_draws}{[\code{list()}] of [\code{data.table()}]\cr
-Draws of spline offsets as returned by \code{calculate_spline_offset_draws}.}
+Draws of spline offsets as returned by \code{\link[=calculate_spline_offset_draws]{calculate_spline_offset_draws()}}.}
 
 \item{inputs}{[\code{list()}]\cr
 [\code{data.table()}] for each ccmpp input. Requires 'srb', 'asfr', 'baseline',

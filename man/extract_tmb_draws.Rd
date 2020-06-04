@@ -8,7 +8,7 @@ extract_tmb_draws(fit, inputs, settings)
 }
 \arguments{
 \item{fit}{[\code{stanfit(1)}] or [\code{sdreport(1)}]\cr
-Model fit object returned by \code{popReconstruct_fit}.}
+Model fit object returned by \code{\link[=popReconstruct_fit]{popReconstruct_fit()}}.}
 
 \item{inputs}{[\code{list()}]\cr
 [\code{data.table()}] for each ccmpp input. Requires 'srb', 'asfr', 'baseline',
@@ -18,7 +18,7 @@ information on each of the required inputs.}
 
 \item{settings}{[\code{list()}]\cr
 Named list of settings for running the popReconstruct model with. The
-required settings are the same as those required for \code{demCore::ccmpp()},
+required settings are the same as those required for \code{\link[demCore:ccmpp]{demCore::ccmpp()}},
 see \strong{Section: Settings} for these. The optional settings specific to
 popReconstruct are described in
 \strong{Section: Optional popReconstruct Settings}}
@@ -27,5 +27,5 @@ popReconstruct are described in
 Extract draws from the popReconstruct model TMB fit
 }
 \seealso{
-\code{popReconstruct_posterior_draws}
+\code{\link[=popReconstruct_posterior_draws]{popReconstruct_posterior_draws()}}
 }

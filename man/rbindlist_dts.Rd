@@ -9,15 +9,45 @@ rbindlist_dts(...)
 }
 \arguments{
 \item{...}{multiple [\code{list()}] of many [\code{data.table()}]\cr
-as returned by \code{popReconstruct_draws} or \code{popReconstruct_prior_draws}.}
+as returned by \code{\link[=popReconstruct_posterior_draws]{popReconstruct_posterior_draws()}} or
+\code{\link[=popReconstruct_prior_draws]{popReconstruct_prior_draws()}}.}
 }
 \value{
 one [\code{list()}] of many [\code{data.table()}]
 }
 \description{
-Can input multiple lists of data.tables that will be combined
+Inputs multiple lists of data.tables that will be combined
 into one list of data.tables. data.tables are matched by the name of each
-element of each list.
+element of each list. This is different than \code{\link[data.table:rbindlist]{data.table::rbindlist()}}
+which inputs one list of data.tables and returns one combined data.table.
+}
+\examples{
+list_dt1 <- list(
+  "population" = data.table::data.table(
+    sex = c("female", "male"),
+    value = 2,
+    method = 1
+),
+  "deaths" = data.table::data.table(
+    sex = c("female", "male"),
+    value = 4,
+    method = 1
+  )
+)
+list_dt2 <- list(
+  "population" = data.table::data.table(
+    sex = c("female", "male"),
+    value = 2,
+    method = 2
+  ),
+  "deaths" = data.table::data.table(
+    sex = c("female", "male"),
+    value = 4,
+    method = 2
+  )
+)
+combined_list_dt <- rbindlist_dts(list_dt1, list_dt2)
+
 }
 \seealso{
 Other popReconstruct: 
