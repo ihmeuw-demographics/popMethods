@@ -15,7 +15,7 @@ This package has not yet been published on CRAN, but can be installed from
 GitHub using the [remotes](https://remotes.r-lib.org/) package.
 
 ```r
-remotes::install_github("ihmeuw-demographics/popMethods")
+remotes::install_github("ihmeuw-demographics/popMethods", dependencies = TRUE)
 ```
 
 ## Getting help
