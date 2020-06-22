@@ -275,7 +275,19 @@ popReconstruct_fit <- function(inputs,
   )
 
   prep_input_array <- function(component, list_dt, detailed_settings) {
+    comp_settings <- detailed_settings[[component]]
+
     dt <- copy(list_dt[[component]])
+
+    create_temp_data <- is.null(dt)
+    if (create_temp_data) {
+      # for the migration parameters not being estimated need to create temp data
+      dt <- list(comp_settings$years, comp_settings$sexes,
+                 comp_settings$ages, value = 0)
+      names(dt) <- c("year_start", "sex", "age_start", value_col)
+      dt <- dt[!mapply(is.null, dt)]
+      dt <- do.call(data.table::CJ, dt)
+    }
 
     # transform value
     setnames(dt, value_col, "value")
@@ -283,6 +295,7 @@ popReconstruct_fit <- function(inputs,
     if (!is.null(transformation)) {
       dt <- dt[, value := transformation(value)]
     }
+    if (create_temp_data) dt[, value := 0]
 
     # convert from dt to matrix format
     mdt <- demCore:::dt_to_matrix(
@@ -326,8 +339,10 @@ popReconstruct_fit <- function(inputs,
   }
 
   # prepare initial estimates and parameters for all possible components
-  # specified in the stan and tmb models
-  all_ccmpp_inputs <- c("srb", "asfr", "baseline", "survival", "net_migration")
+  # specified in the stan and tmb models, even if the component is not being
+  # estimated, placeholders will be added
+  all_ccmpp_inputs <- c("srb", "asfr", "baseline", "survival",
+                        "net_migration", "immigration", "emigration")
   for (component in all_ccmpp_inputs) {
 
     sexes <- detailed_settings[[component]][["sexes"]]
@@ -335,16 +350,12 @@ popReconstruct_fit <- function(inputs,
     ages_knots <- detailed_settings[[component]][["ages_knots"]]
 
     # add B-spline basis functions
-    if ("B_t" %in% names(detailed_settings[[component]])) {
-      input_data[[paste0("N_k_t_", component)]] <- length(years_knots)
-      input_data[[paste0("B_t_", component)]] <-
-        detailed_settings[[component]][["B_t"]]
-    }
-    if ("B_a" %in% names(detailed_settings[[component]])) {
-      input_data[[paste0("N_k_a_", component)]] <- length(ages_knots)
-      input_data[[paste0("B_a_", component)]] <-
-        detailed_settings[[component]][["B_a"]]
-    }
+    input_data[[paste0("N_k_t_", component)]] <- length(years_knots)
+    input_data[[paste0("B_t_", component)]] <-
+      detailed_settings[[component]][["B_t"]]
+    input_data[[paste0("N_k_a_", component)]] <- length(ages_knots)
+    input_data[[paste0("B_a_", component)]] <-
+      detailed_settings[[component]][["B_a"]]
 
     # add initial input estimates
     input_adt <- prep_input_array(component, inputs, detailed_settings)
@@ -386,7 +397,7 @@ popReconstruct_fit <- function(inputs,
   # prepare data and parameters for all possible components specified in the
   # stan and tmb models
   all_variance_inputs <- c("srb", "asfr", "population", "survival",
-                           "net_migration")
+                           "net_migration", "immigration", "emigration")
   for (component in all_variance_inputs) {
     # add alpha and beta hyperparameters
     for (param in c("alpha", "beta")) {
@@ -440,6 +451,8 @@ popReconstruct_fit <- function(inputs,
       })
       names(map) <- names(fix_params)
     }
+
+    input_data$estimate_net_migration <- "net_migration" %in% settings$estimated_parameters
 
     # make objective function
     input_data <- c(list(model = "popReconstruct"), input_data)

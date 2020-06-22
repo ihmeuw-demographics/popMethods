@@ -67,7 +67,8 @@ popReconstruct_hyperparameters <- function(abs_deviations,
 
   possible_components <- c("srb", "asfr", "baseline", "population", "survival",
                            "net_migration", "immigration", "emigration")
-  log_transform_components <- c("srb", "asfr", "baseline", "population")
+  log_transform_components <- setdiff(possible_components,
+                                      c("survival", "net_migration"))
 
   assertthat::assert_that(
     assertive::is_list(abs_deviations),

@@ -95,6 +95,7 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_INTEGER(Y); // number of year intervals in projection period
   DATA_INTEGER(Y_p); // number of population data years (not including the baseline year)
   DATA_IVECTOR(pop_data_years_index); // columns in population object that correspond to population data years
+  DATA_INTEGER(estimate_net_migration); // whether to estimate net migration (or immigration and emigration separately)
 
   // inverse gamma alpha and beta hyperparameters for ccmpp inputs
   DATA_SCALAR(alpha_srb);
@@ -107,6 +108,10 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_SCALAR(beta_survival);
   DATA_SCALAR(alpha_net_migration);
   DATA_SCALAR(beta_net_migration);
+  DATA_SCALAR(alpha_immigration);
+  DATA_SCALAR(beta_immigration);
+  DATA_SCALAR(alpha_emigration);
+  DATA_SCALAR(beta_emigration);
 
   // ccmpp input initial estimates
   DATA_ARRAY(input_log_srb); // input sex ratio at birth
@@ -114,6 +119,8 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_ARRAY(input_log_baseline); // input baseline populations
   DATA_ARRAY(input_logit_survival); // input survival proportions
   DATA_ARRAY(input_net_migration); // input net migration proportions
+  DATA_ARRAY(input_log_immigration); // input immigration proportions
+  DATA_ARRAY(input_log_emigration); // input emigration proportions
 
   // B-spline linear basis functions
   DATA_INTEGER(N_k_t_srb);
@@ -137,6 +144,16 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_INTEGER(N_k_a_net_migration);
   DATA_MATRIX(B_a_net_migration);
 
+  DATA_INTEGER(N_k_t_immigration);
+  DATA_MATRIX(B_t_immigration);
+  DATA_INTEGER(N_k_a_immigration);
+  DATA_MATRIX(B_a_immigration);
+
+  DATA_INTEGER(N_k_t_emigration);
+  DATA_MATRIX(B_t_emigration);
+  DATA_INTEGER(N_k_a_emigration);
+  DATA_MATRIX(B_a_emigration);
+
   // population data
   DATA_ARRAY(input_log_population_data); // population data
 
@@ -149,6 +166,8 @@ Type popReconstruct(objective_function<Type>* obj) {
   PARAMETER(log_sigma2_population);
   PARAMETER(log_sigma2_survival);
   PARAMETER(log_sigma2_net_migration);
+  PARAMETER(log_sigma2_immigration);
+  PARAMETER(log_sigma2_emigration);
 
   // offset parameters
   PARAMETER_ARRAY(offset_log_srb);
@@ -156,6 +175,8 @@ Type popReconstruct(objective_function<Type>* obj) {
   PARAMETER_ARRAY(offset_log_baseline);
   PARAMETER_ARRAY(offset_logit_survival);
   PARAMETER_ARRAY(offset_net_migration);
+  PARAMETER_ARRAY(offset_log_immigration);
+  PARAMETER_ARRAY(offset_log_emigration);
 
 
   ////// transformed parameters section
@@ -166,6 +187,8 @@ Type popReconstruct(objective_function<Type>* obj) {
   Type sigma2_population = exp(log_sigma2_population);
   Type sigma2_survival = exp(log_sigma2_survival);
   Type sigma2_net_migration = exp(log_sigma2_net_migration);
+  Type sigma2_immigration = exp(log_sigma2_immigration);
+  Type sigma2_emigration = exp(log_sigma2_emigration);
 
   // spline offset parameters
   array<Type> spline_offset_log_srb(input_log_srb.dim);
@@ -173,6 +196,8 @@ Type popReconstruct(objective_function<Type>* obj) {
   array<Type> spline_offset_log_baseline(input_log_baseline.dim);
   array<Type> spline_offset_logit_survival(input_logit_survival.dim);
   array<Type> spline_offset_net_migration(input_net_migration.dim);
+  array<Type> spline_offset_log_immigration(input_log_immigration.dim);
+  array<Type> spline_offset_log_emigration(input_log_emigration.dim);
 
   // untransformed ccmp input parameters
   array<Type> srb(input_log_srb.dim);
@@ -180,6 +205,8 @@ Type popReconstruct(objective_function<Type>* obj) {
   array<Type> baseline(input_log_baseline.dim);
   array<Type> survival(input_logit_survival.dim);
   array<Type> net_migration(input_net_migration.dim);
+  array<Type> immigration(input_log_immigration.dim);
+  array<Type> emigration(input_log_emigration.dim);
 
   // calculate spline offsets
   spline_offset_log_srb = matrix<Type>(offset_log_srb) * B_t_srb.transpose();
@@ -189,6 +216,8 @@ Type popReconstruct(objective_function<Type>* obj) {
     matrix<Type> sex_specific_offset_log_baseline_matrix(N_k_a_baseline, 1);
     matrix<Type> sex_specific_offset_logit_survival_matrix(N_k_a_survival, N_k_t_survival);
     matrix<Type> sex_specific_offset_net_migration_matrix(N_k_a_net_migration, N_k_t_net_migration);
+    matrix<Type> sex_specific_offset_log_immigration_matrix(N_k_a_immigration, N_k_t_immigration);
+    matrix<Type> sex_specific_offset_log_emigration_matrix(N_k_a_emigration, N_k_t_emigration);
 
     for (int a = 0; a < N_k_a_baseline; a++) {
       sex_specific_offset_log_baseline_matrix(a, 0) = offset_log_baseline(a, 0, s);
@@ -202,12 +231,28 @@ Type popReconstruct(objective_function<Type>* obj) {
     }
     spline_offset_logit_survival.col(s) = B_a_survival * sex_specific_offset_logit_survival_matrix * B_t_survival.transpose();
 
-    for (int y = 0; y < N_k_t_net_migration; y++) {
-      for (int a = 0; a < N_k_a_net_migration; a++) {
-        sex_specific_offset_net_migration_matrix(a, y) = offset_net_migration(a, y, s);
+    if (estimate_net_migration) {
+      for (int y = 0; y < N_k_t_net_migration; y++) {
+        for (int a = 0; a < N_k_a_net_migration; a++) {
+          sex_specific_offset_net_migration_matrix(a, y) = offset_net_migration(a, y, s);
+        }
       }
+      spline_offset_net_migration.col(s) = B_a_net_migration * sex_specific_offset_net_migration_matrix * B_t_net_migration.transpose();
+    } else {
+      for (int y = 0; y < N_k_t_immigration; y++) {
+        for (int a = 0; a < N_k_a_immigration; a++) {
+          sex_specific_offset_log_immigration_matrix(a, y) = offset_log_immigration(a, y, s);
+        }
+      }
+      spline_offset_log_immigration.col(s) = B_a_immigration * sex_specific_offset_log_immigration_matrix * B_t_immigration.transpose();
+
+      for (int y = 0; y < N_k_t_emigration; y++) {
+        for (int a = 0; a < N_k_a_emigration; a++) {
+          sex_specific_offset_log_emigration_matrix(a, y) = offset_log_emigration(a, y, s);
+        }
+      }
+      spline_offset_log_emigration.col(s) = B_a_emigration * sex_specific_offset_log_emigration_matrix * B_t_emigration.transpose();
     }
-    spline_offset_net_migration.col(s) = B_a_net_migration * sex_specific_offset_net_migration_matrix * B_t_net_migration.transpose();
   }
 
   // calculate untransformed ccmpp input parameters
@@ -215,7 +260,13 @@ Type popReconstruct(objective_function<Type>* obj) {
   asfr = exp(input_log_asfr + spline_offset_log_asfr);
   baseline = exp(input_log_baseline + spline_offset_log_baseline);
   survival = 1 / (1 + exp(-1 * (input_logit_survival + spline_offset_logit_survival)));
-  net_migration = input_net_migration + spline_offset_net_migration;
+  if (estimate_net_migration) {
+    net_migration = input_net_migration + spline_offset_net_migration;
+  } else {
+    immigration = exp(input_log_immigration + spline_offset_log_immigration);
+    emigration = exp(input_log_emigration + spline_offset_log_emigration);
+    net_migration = immigration - emigration;
+  }
 
   // Level 2 (ccmpp)
   array<Type> population(A, Y + 1, sexes);
@@ -233,11 +284,13 @@ Type popReconstruct(objective_function<Type>* obj) {
   nll -= dinvGamma(sigma2_population, alpha_population, beta_population, true);
   nll -= dinvGamma(sigma2_survival, alpha_survival, beta_survival, true);
   nll -= dinvGamma(sigma2_net_migration, alpha_net_migration, beta_net_migration, true);
+  nll -= dinvGamma(sigma2_immigration, alpha_immigration, beta_immigration, true);
+  nll -= dinvGamma(sigma2_emigration, alpha_emigration, beta_emigration, true);
 
   // Jacobian adjustment for variances (this is automatically handled by Stan)
   // See https://www.rpubs.com/kaz_yos/stan_jacobian for example
   // See https://github.com/colemonnahan/hmc_tests/blob/master/models/swallows/swallows.cpp for example
-  nll -= log_sigma2_srb + log_sigma2_asfr + log_sigma2_population + log_sigma2_survival + log_sigma2_net_migration;
+  nll -= log_sigma2_srb + log_sigma2_asfr + log_sigma2_population + log_sigma2_survival + log_sigma2_net_migration + log_sigma2_immigration + log_sigma2_emigration;
 
   // LEVEL 3 (model initial estimates ccmpp of ccmpp inputs)
   nll -= dnorm(vector<Type>(offset_log_srb), 0, sqrt(sigma2_srb), true).sum();
@@ -245,6 +298,8 @@ Type popReconstruct(objective_function<Type>* obj) {
   nll -= dnorm(vector<Type>(offset_log_baseline), 0, sqrt(sigma2_population), true).sum();
   nll -= dnorm(vector<Type>(offset_logit_survival), 0, sqrt(sigma2_survival), true).sum();
   nll -= dnorm(vector<Type>(offset_net_migration), 0, sigma2_net_migration, true).sum();
+  nll -= dnorm(vector<Type>(offset_log_immigration), 0, sigma2_immigration, true).sum();
+  nll -= dnorm(vector<Type>(offset_log_emigration), 0, sigma2_emigration, true).sum();
 
   // LEVEL 1 (model the census counts)
   for (int s = 0; s < sexes; s++) {
