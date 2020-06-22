@@ -25,6 +25,13 @@ popReconstruct_posterior_draws <- function(fit,
 
   demCore:::validate_ccmpp_inputs(inputs, settings, value_col)
 
+  # add optional settings needed for popReconstruct
+  settings <- copy(settings)
+  settings <- create_optional_settings(settings, inputs)
+  detailed_settings <- create_detailed_settings(settings)
+
+  validate_popReconstruct_inputs(inputs, settings, detailed_settings, value_col)
+
   # Extract modeled parameters ----------------------------------------------
 
   # extract directly modeled offset parameters
@@ -33,13 +40,13 @@ popReconstruct_posterior_draws <- function(fit,
       class(fit) == "stanfit",
       msg = "'fit' object is not a stan object"
     )
-    draws <- extract_stan_draws(fit, inputs, settings)
+    draws <- extract_stan_draws(fit, inputs, settings, detailed_settings)
   } else if (software == "tmb") {
     assertthat::assert_that(
       class(fit) == "sdreport",
       msg = "'fit' object is not a tmb object"
     )
-    draws <- extract_tmb_draws(fit, inputs, settings)
+    draws <- extract_tmb_draws(fit, inputs, settings, detailed_settings)
   }
 
   # add method column
@@ -56,12 +63,7 @@ popReconstruct_posterior_draws <- function(fit,
 #' @inheritParams popReconstruct_posterior_draws
 #'
 #' @seealso [`popReconstruct_posterior_draws()`]
-extract_stan_draws <- function(fit, inputs, settings) {
-
-  # add optional settings needed for popReconstruct
-  settings <- copy(settings)
-  settings <- create_optional_settings(settings, inputs)
-  detailed_settings <- create_detailed_settings(settings)
+extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
 
   # compile draws from each of the chains
   draws <- rstan::extract(fit, permuted = FALSE)
@@ -213,12 +215,7 @@ extract_stan_draws <- function(fit, inputs, settings) {
 #' @inheritParams popReconstruct_posterior_draws
 #'
 #' @seealso [`popReconstruct_posterior_draws()`]
-extract_tmb_draws <- function(fit, inputs, settings) {
-
-  # add optional settings needed for popReconstruct
-  settings <- copy(settings)
-  settings <- create_optional_settings(settings, inputs)
-  detailed_settings <- create_detailed_settings(settings)
+extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
 
   # Generate draws for random and fixed parameters --------------------------
 
@@ -421,6 +418,7 @@ popReconstruct_prior_draws <- function(inputs,
   detailed_settings <- create_detailed_settings(settings)
 
   validate_popReconstruct_hyperparameters(hyperparameters, inputs, settings)
+  validate_popReconstruct_inputs(inputs, settings, detailed_settings, value_col)
 
   # Sample from prior distribution ------------------------------------------
 

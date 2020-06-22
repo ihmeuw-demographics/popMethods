@@ -246,7 +246,8 @@ popReconstruct_fit <- function(inputs,
   detailed_settings <- create_detailed_settings(settings)
 
   validate_popReconstruct_hyperparameters(hyperparameters, inputs, settings)
-  validate_popReconstruct_data(data, settings, value_col)
+  validate_popReconstruct_data(data, settings, detailed_settings, value_col)
+  validate_popReconstruct_inputs(inputs, settings, detailed_settings, value_col)
 
   # Create input objects for fitting model ----------------------------------
 
@@ -480,6 +481,10 @@ popReconstruct_fit <- function(inputs,
   return(fit)
 }
 
+#' @title Helper function to validate hyperparameter values
+#'
+#' @description Assert that the list of hyperparameters includes all expected
+#'   components that are not fixed in the model.
 validate_popReconstruct_hyperparameters <- function(hyperparameters,
                                                     inputs,
                                                     settings) {
@@ -499,10 +504,16 @@ validate_popReconstruct_hyperparameters <- function(hyperparameters,
                  "level containing each non-fixed model component and the ",
                  "second level containing named 'alpha' and 'beta' parameters.")
   )
-
 }
 
-validate_popReconstruct_data <- function(data, settings, value_col) {
+#' @title Helper function to validate input data
+#'
+#' @description Assert that the input data.tables includes all expected columns,
+#'   combinations of id variables, and that the transformed values are finite.
+validate_popReconstruct_data <- function(data,
+                                         settings,
+                                         detailed_settings,
+                                         value_col) {
 
   # check all required columns are present in `data`
   component_cols <- list(
@@ -541,6 +552,44 @@ validate_popReconstruct_data <- function(data, settings, value_col) {
     }
     assertable::assert_values(data[[component]], colnames = value_col,
                               test = "not_na", quiet = T)
-  }
 
+    # calculate transformed values
+    transformation <- detailed_settings[[component]][["transformation"]]
+    transformed_values <- data[[component]][[value_col]]
+    if (!is.null(transformation)) {
+      transformed_values <- transformation(transformed_values)
+    }
+
+    assertthat::assert_that(
+      all(is.finite(transformed_values)),
+      msg = paste0("'", component, "' data once transformed must be a finite ",
+                   "value (-Inf < value < Inf)")
+    )
+  }
+}
+
+#' @title Helper function to validate initial input data.tables
+#'
+#' @description Assert that each of the inputs once transformed is a finite
+#'   value greater than negative Infinity and less than positive Infinity.
+validate_popReconstruct_inputs <- function(inputs,
+                                           settings,
+                                           detailed_settings,
+                                           value_col) {
+
+  for (component in names(inputs)) {
+
+    # calculate transformed values
+    transformation <- detailed_settings[[component]][["transformation"]]
+    transformed_values <- inputs[[component]][[value_col]]
+    if (!is.null(transformation)) {
+      transformed_values <- transformation(transformed_values)
+    }
+
+    assertthat::assert_that(
+      all(is.finite(transformed_values)),
+      msg = paste0("'", component, "' input once transformed must be a finite ",
+                   "value (-Inf < value < Inf)")
+    )
+  }
 }

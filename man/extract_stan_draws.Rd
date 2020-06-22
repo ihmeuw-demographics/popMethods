@@ -4,7 +4,7 @@
 \alias{extract_stan_draws}
 \title{Helper function to extract draws from popReconstruct stan fits}
 \usage{
-extract_stan_draws(fit, inputs, settings)
+extract_stan_draws(fit, inputs, settings, detailed_settings)
 }
 \arguments{
 \item{fit}{[\code{stanfit(1)}] or [\code{sdreport(1)}]\cr
