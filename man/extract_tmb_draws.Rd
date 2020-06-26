@@ -4,7 +4,7 @@
 \alias{extract_tmb_draws}
 \title{Extract draws from the popReconstruct model TMB fit}
 \usage{
-extract_tmb_draws(fit, inputs, settings)
+extract_tmb_draws(fit, inputs, settings, detailed_settings)
 }
 \arguments{
 \item{fit}{[\code{stanfit(1)}] or [\code{sdreport(1)}]\cr
@@ -13,7 +13,7 @@ Model fit object returned by \code{\link[=popReconstruct_fit]{popReconstruct_fit
 \item{inputs}{[\code{list()}]\cr
 [\code{data.table()}] for each ccmpp input. Requires 'srb', 'asfr', 'baseline',
 and 'survival'; and migration estimates provided as just 'net_migration' or
-'immigration' and 'emigration'. See \strong{Section: Inputs} for more
+both 'immigration' and 'emigration'. See \strong{Section: Inputs} for more
 information on each of the required inputs.}
 
 \item{settings}{[\code{list()}]\cr
@@ -22,6 +22,9 @@ required settings are the same as those required for \code{\link[demCore:ccmpp]{
 see \strong{Section: Settings} for these. The optional settings specific to
 popReconstruct are described in
 \strong{Section: Optional popReconstruct Settings}}
+
+\item{detailed_settings}{[\code{list()}]\cr
+Detailed settings for each ccmpp input and 'population'.}
 }
 \description{
 Extract draws from the popReconstruct model TMB fit

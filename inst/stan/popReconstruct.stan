@@ -79,6 +79,8 @@ data {
   int<lower = 0, upper = 1> estimate_baseline;
   int<lower = 0, upper = 1> estimate_survival;
   int<lower = 0, upper = 1> estimate_net_migration;
+  int<lower = 0, upper = 1> estimate_immigration;
+  int<lower = 0, upper = 1> estimate_emigration;
 
   // inverse gamma alpha and beta hyperparameters for ccmpp inputs
   real alpha_srb;
@@ -91,6 +93,10 @@ data {
   real beta_survival;
   real alpha_net_migration;
   real beta_net_migration;
+  real alpha_immigration;
+  real beta_immigration;
+  real alpha_emigration;
+  real beta_emigration;
 
   // ccmpp input initial estimates
   matrix[1, Y] input_log_srb; // input sex ratio at birth
@@ -98,6 +104,8 @@ data {
   matrix[A, 1] input_log_baseline[sexes]; // input baseline populations
   matrix[A + 1, Y] input_logit_survival[sexes]; // input survival proportions
   matrix[A, Y] input_net_migration[sexes]; // input net migration proportions
+  matrix[A, Y] input_log_immigration[sexes]; // input immigration proportions
+  matrix[A, Y] input_log_emigration[sexes]; // input emigration proportions
 
   // B-spline linear basis functions
   int N_k_t_srb;
@@ -121,6 +129,16 @@ data {
   int N_k_a_net_migration;
   matrix[A, N_k_a_net_migration] B_a_net_migration;
 
+  int N_k_t_immigration;
+  matrix[Y, N_k_t_immigration] B_t_immigration;
+  int N_k_a_immigration;
+  matrix[A, N_k_a_immigration] B_a_immigration;
+
+  int N_k_t_emigration;
+  matrix[Y, N_k_t_emigration] B_t_emigration;
+  int N_k_a_emigration;
+  matrix[A, N_k_a_emigration] B_a_emigration;
+
   // population data
   matrix[A, Y_p] input_log_population_data[sexes]; // population data
 }
@@ -131,6 +149,8 @@ parameters {
   real<lower = 0> sigma2_population;
   real<lower = 0> sigma2_survival[estimate_survival];
   real<lower = 0> sigma2_net_migration[estimate_net_migration];
+  real<lower = 0> sigma2_immigration[estimate_immigration];
+  real<lower = 0> sigma2_emigration[estimate_emigration];
 
   // offset parameters
   matrix[1, N_k_t_srb] offset_log_srb[estimate_srb];
@@ -138,6 +158,8 @@ parameters {
   matrix[N_k_a_baseline, 1] offset_log_baseline[estimate_baseline, sexes];
   matrix[N_k_a_survival, N_k_t_survival] offset_logit_survival[estimate_survival, sexes];
   matrix[N_k_a_net_migration, N_k_t_net_migration] offset_net_migration[estimate_net_migration, sexes];
+  matrix[N_k_a_immigration, N_k_t_immigration] offset_log_immigration[estimate_immigration, sexes];
+  matrix[N_k_a_emigration, N_k_t_emigration] offset_log_emigration[estimate_emigration, sexes];
 }
 transformed parameters {
   // initialize matrix to store projected population
@@ -149,6 +171,8 @@ transformed parameters {
   matrix[A, 1] spline_offset_log_baseline[sexes] = rep_array(rep_matrix(0, A, 1), sexes);
   matrix[A + 1, Y] spline_offset_logit_survival[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
   matrix[A, Y] spline_offset_net_migration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix[A, Y] spline_offset_log_immigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix[A, Y] spline_offset_log_emigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
 
   // untransformed ccmpp input parameters
   matrix<lower = 0>[1, Y] srb;
@@ -156,6 +180,8 @@ transformed parameters {
   matrix<lower = 0>[A, 1] baseline[sexes];
   matrix<lower = 0, upper = 1>[A + 1, Y] survival[sexes];
   matrix[A, Y] net_migration[sexes];
+  matrix<lower = 0>[A, Y] immigration[estimate_immigration, sexes];
+  matrix<lower = 0>[A, Y] emigration[estimate_emigration, sexes];
 
   // calculate spline offsets
   if (estimate_srb) {
@@ -174,6 +200,12 @@ transformed parameters {
     if (estimate_net_migration) {
       spline_offset_net_migration[s] = B_a_net_migration * offset_net_migration[1, s] * B_t_net_migration';
     }
+    if (estimate_immigration) {
+      spline_offset_log_immigration[s] = B_a_immigration * offset_log_immigration[1, s] * B_t_immigration';
+    }
+    if (estimate_emigration) {
+      spline_offset_log_emigration[s] = B_a_emigration * offset_log_emigration[1, s] * B_t_emigration';
+    }
   }
 
   // calculate untransformed ccmpp input parameters
@@ -182,7 +214,13 @@ transformed parameters {
   for (s in 1:sexes) {
     baseline[s] = exp(input_log_baseline[s] + spline_offset_log_baseline[s]);
     survival[s] = inv_logit(input_logit_survival[s] + spline_offset_logit_survival[s]);
-    net_migration[s] = input_net_migration[s] + spline_offset_net_migration[s];
+    if (estimate_net_migration) {
+      net_migration[s] = input_net_migration[s] + spline_offset_net_migration[s];
+    } else {
+      immigration[estimate_immigration, s] = exp(input_log_immigration[s] + spline_offset_log_immigration[s]);
+      emigration[estimate_emigration, s] = exp(input_log_emigration[s] + spline_offset_log_emigration[s]);
+      net_migration[s] = immigration[estimate_immigration, s] - emigration[estimate_emigration, s];
+    }
   }
 
   // Level 2 (ccmpp)
@@ -200,12 +238,16 @@ model {
   }
   if (estimate_survival) {
     sigma2_survival ~ inv_gamma(alpha_survival, beta_survival);
-
   }
   if (estimate_net_migration) {
     sigma2_net_migration ~ inv_gamma(alpha_net_migration, beta_net_migration);
   }
-
+  if (estimate_immigration) {
+    sigma2_immigration ~ inv_gamma(alpha_immigration, beta_immigration);
+  }
+  if (estimate_emigration) {
+    sigma2_emigration ~ inv_gamma(alpha_emigration, beta_emigration);
+  }
   // LEVEL 3 (model initial estimates ccmpp of ccmpp inputs)
 
   for (y in 1:N_k_t_srb) {
@@ -213,13 +255,11 @@ model {
       offset_log_srb[1, 1, y] ~ normal(0, sqrt(sigma2_srb[1]));
     }
   }
-
   for (y in 1:N_k_t_asfr) {
     if (estimate_asfr) {
       offset_log_asfr[1, , y] ~ normal(0, sqrt(sigma2_asfr[1]));
     }
   }
-
   for (s in 1:sexes) {
     if (estimate_baseline) {
       offset_log_baseline[1, s, , 1] ~ normal(0, sqrt(sigma2_population));
@@ -239,7 +279,20 @@ model {
       }
     }
   }
-
+  for (y in 1:N_k_t_immigration) {
+    for (s in 1:sexes) {
+      if (estimate_immigration) {
+        offset_log_immigration[1, s, , y] ~ normal(0, sqrt(sigma2_immigration[1]));
+      }
+    }
+  }
+  for (y in 1:N_k_t_emigration) {
+    for (s in 1:sexes) {
+      if (estimate_emigration) {
+        offset_log_emigration[1, s, , y] ~ normal(0, sqrt(sigma2_emigration[1]));
+      }
+    }
+  }
   // LEVEL 1 (model the census counts)
   for (i in 1:Y_p) {
     for (s in 1:sexes) {

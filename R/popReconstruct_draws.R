@@ -25,6 +25,13 @@ popReconstruct_posterior_draws <- function(fit,
 
   demCore:::validate_ccmpp_inputs(inputs, settings, value_col)
 
+  # add optional settings needed for popReconstruct
+  settings <- copy(settings)
+  settings <- create_optional_settings(settings, inputs)
+  detailed_settings <- create_detailed_settings(settings)
+
+  validate_popReconstruct_inputs(inputs, settings, detailed_settings, value_col)
+
   # Extract modeled parameters ----------------------------------------------
 
   # extract directly modeled offset parameters
@@ -33,13 +40,13 @@ popReconstruct_posterior_draws <- function(fit,
       class(fit) == "stanfit",
       msg = "'fit' object is not a stan object"
     )
-    draws <- extract_stan_draws(fit, inputs, settings)
+    draws <- extract_stan_draws(fit, inputs, settings, detailed_settings)
   } else if (software == "tmb") {
     assertthat::assert_that(
       class(fit) == "sdreport",
       msg = "'fit' object is not a tmb object"
     )
-    draws <- extract_tmb_draws(fit, inputs, settings)
+    draws <- extract_tmb_draws(fit, inputs, settings, detailed_settings)
   }
 
   # add method column
@@ -54,14 +61,11 @@ popReconstruct_posterior_draws <- function(fit,
 #' @title Helper function to extract draws from popReconstruct stan fits
 #'
 #' @inheritParams popReconstruct_posterior_draws
+#' @param detailed_settings \[`list()`\]\cr
+#'   Detailed settings for each ccmpp input and 'population'.
 #'
 #' @seealso [`popReconstruct_posterior_draws()`]
-extract_stan_draws <- function(fit, inputs, settings) {
-
-  # add optional settings needed for popReconstruct
-  settings <- copy(settings)
-  settings <- create_optional_settings(settings, inputs)
-  detailed_settings <- create_detailed_settings(settings)
+extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
 
   # compile draws from each of the chains
   draws <- rstan::extract(fit, permuted = FALSE)
@@ -96,7 +100,7 @@ extract_stan_draws <- function(fit, inputs, settings) {
     if (nrow(component_draws) > 0) {
       # add on id variables to draws
       component_draws[, parameter := gsub(paste0("^", param, "|\\[|\\]"), "", parameter)]
-      component_draws[, c(if (grepl("^offset", param)) "estimate",
+      component_draws[, c(if (grepl("^offset", param) | param %in% c("immigration", "emigration")) "estimate",
                           if (!is.null(sexes)) "sex_index", "age_index", "year_index") :=
                         data.table::tstrsplit(parameter, split = ",")]
       component_draws[, year_start := as.integer(years[as.integer(year_index)])]
@@ -210,15 +214,10 @@ extract_stan_draws <- function(fit, inputs, settings) {
 
 #' @title Extract draws from the popReconstruct model TMB fit
 #'
-#' @inheritParams popReconstruct_posterior_draws
+#' @inheritParams extract_stan_draws
 #'
 #' @seealso [`popReconstruct_posterior_draws()`]
-extract_tmb_draws <- function(fit, inputs, settings) {
-
-  # add optional settings needed for popReconstruct
-  settings <- copy(settings)
-  settings <- create_optional_settings(settings, inputs)
-  detailed_settings <- create_detailed_settings(settings)
+extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
 
   # Generate draws for random and fixed parameters --------------------------
 
@@ -421,15 +420,12 @@ popReconstruct_prior_draws <- function(inputs,
   detailed_settings <- create_detailed_settings(settings)
 
   validate_popReconstruct_hyperparameters(hyperparameters, inputs, settings)
+  validate_popReconstruct_inputs(inputs, settings, detailed_settings, value_col)
 
   # Sample from prior distribution ------------------------------------------
 
   print(paste("Sampling", settings$n_draws, "draws from the prior distribution",
               chunk_size, "draws at a time"))
-
-  # determine which parameters are not fixed
-  parameters <- c("srb", "asfr", "baseline", "survival", "net_migration")
-  parameters <- parameters[!parameters %in% settings$fixed_parameters]
 
   # create overall containers for draws
   all_variance <- NULL
@@ -443,7 +439,7 @@ popReconstruct_prior_draws <- function(inputs,
 
     # sample parameter specific variance draws from inverse gamma distribution
     print("- Sampling variance draws")
-    variance <- lapply(parameters, function(parameter) {
+    variance <- lapply(settings$estimated_parameters, function(parameter) {
       if (parameter == "baseline") parameter <- "population"
       draws <- data.table(parameter = parameter,
                           original_draw = 1:chunk_size,
@@ -477,7 +473,7 @@ popReconstruct_prior_draws <- function(inputs,
         offset <- do.call(data.table::CJ, combinations)
 
         # sample the actual offset values if component is not fixed
-        if (comp %in% parameters) {
+        if (comp %in% settings$estimated_parameters) {
           var_comp <- ifelse(comp == "baseline", "population", comp)
           var_val <- variance[parameter == var_comp & original_draw == d, value]
           offset[, value := stats::rnorm(n = .N, mean = 0, sd = sqrt(var_val))]
@@ -626,8 +622,7 @@ popReconstruct_prior_draws <- function(inputs,
 #' @param offset_draws \[`list()`\] of \[`data.table()`\]\cr
 #'   Draws of directly modeled offset parameters for all ccmpp inputs as
 #'   prepared in the `popReconstruct_*_draws()` functions.
-#' @param detailed_settings \[`list()`\]\cr
-#'   Detailed settings for each ccmpp input and 'population'.
+#' @inheritParams extract_stan_draws
 #' @param draw_col_name \[`character(1)`\]\cr
 #'   Name of column in `offset_draws` \[`data.table()`\] that corresponds to
 #'   draw index
@@ -713,6 +708,7 @@ predict_spline_offset <- function(dt, B_t = NULL, B_a = NULL,
   } else if (!is.null(B_t)) {
     spline_offset_matrix <- offset_matrix %*% t(B_t)
   }
+
   if (!is.null(years)) colnames(spline_offset_matrix) <- years
   if (!is.null(ages)) {
     rownames(spline_offset_matrix) <- ages
@@ -797,14 +793,15 @@ ccmpp_draws <- function(input_draws,
                         draw_col_name) {
 
   pop_draws <- lapply(1:n_draws, function(i) {
+
+    # get one draw of each of the input components
+    input <- lapply(names(input_draws), function(comp) {
+      input_draws[[comp]][get(draw_col_name) == i]
+    })
+    names(input) <- names(input_draws)
+
     pop <- demCore::ccmpp(
-      inputs = list(
-        srb = input_draws[["srb"]][get(draw_col_name) == i],
-        asfr = input_draws[["asfr"]][get(draw_col_name) == i],
-        baseline = input_draws[["baseline"]][get(draw_col_name) == i],
-        survival = input_draws[["survival"]][get(draw_col_name) == i],
-        net_migration = input_draws[["net_migration"]][get(draw_col_name) == i]
-      ),
+      inputs = input,
       settings = settings,
       value_col = "value",
       assert_positive_pop = FALSE,
@@ -909,7 +906,7 @@ popReconstruct_summarize_draws <- function(draws,
     unique(sapply(draws, class)[1, ]) == "data.table",
     all(sapply(draws, function(dt) value_col %in% names(dt))),
     all(sapply(draws, function(dt) all(summarize_cols %in% names(dt)))),
-    msg = paste0("`draws` must be a list of data.tables that each contains",
+    msg = paste0("`draws` must be a list of data.tables that each contains ",
                  "`summarize_cols` and `value_col`")
   )
 

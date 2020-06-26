@@ -1,8 +1,4 @@
-
-
-# Test the original popReconstruct model specification --------------------
-
-original_settings = list(
+settings = list(
   years = seq(1960, 2000, 5),
   sexes = c("female"),
   ages = seq(0, 80, 5),
@@ -11,103 +7,137 @@ original_settings = list(
 
   n_draws = 100
 )
-original_hyperparameters <- list(asfr = list(alpha = 1, beta = 0.0109),
-                                 population = list(alpha = 1, beta = 0.0109),
-                                 survival = list(alpha = 1, beta = 0.0109),
-                                 net_migration = list(alpha = 1, beta = 0.0436))
+hyperparameters <- list(
+  asfr = list(alpha = 1, beta = 0.0109),
+  population = list(alpha = 1, beta = 0.0109),
+  survival = list(alpha = 1, beta = 0.0109),
+  net_migration = list(alpha = 1, beta = 0.0436)
+)
 
-testthat::test_that("the original popReconstruct model works in stan", {
-  fit_stan <- testthat::expect_error(
+
+test_fit <- function(inputs, hyperparameters, software, ...) {
+
+  fit <- testthat::expect_error(
     popMethods::popReconstruct_fit(
-      inputs = demCore::burkina_faso_initial_estimates,
+      inputs = inputs,
       data = demCore::burkina_faso_data,
-      hyperparameters = original_hyperparameters,
-      settings = original_settings,
+      hyperparameters = hyperparameters,
+      settings = settings,
       value_col = "value",
-      software = "stan",
-      chains = 2, warmup = 100, iter = 200, thin = 2, seed = 3
+      software = software,
+      ...
     ),
     NA
   )
 
-  draws_stan <- testthat::expect_silent(
+  draws <- testthat::expect_silent(
     popMethods::popReconstruct_posterior_draws(
-      fit = fit_stan,
-      inputs = demCore::burkina_faso_initial_estimates,
-      settings = original_settings,
+      fit = fit,
+      inputs = inputs,
+      settings = settings,
       value_col = "value",
-      software = "stan",
+      software = software,
       method_name = "original"
     )
   )
-  testthat::expect_equal("list", class(draws_stan))
-  testthat::expect_equal("data.table", unique(sapply(draws_stan, class)[1, ]))
+  testthat::expect_equal("list", class(draws))
+  testthat::expect_equal("data.table", unique(sapply(draws, class)[1, ]))
 
-  summary_stan <- testthat::expect_silent(
+  summarize_cols <- c("chain", "chain_draw", "draw")
+  if (software == "tmb") summarize_cols <- c("draw")
+  summary <- testthat::expect_silent(
     popMethods::popReconstruct_summarize_draws(
-      draws = draws_stan
+      draws = draws,
+      summarize_cols = summarize_cols
     )
   )
-  testthat::expect_equal("list", class(summary_stan))
-  testthat::expect_equal("data.table", unique(sapply(summary_stan, class)[1, ]))
+  testthat::expect_equal("list", class(summary))
+  testthat::expect_equal("data.table", unique(sapply(summary, class)[1, ]))
+}
 
-})
-
-testthat::test_that("the original popReconstruct model works in tmb", {
-  fit_tmb <- testthat::expect_error(
-    popMethods::popReconstruct_fit(
-      inputs = demCore::burkina_faso_initial_estimates,
-      data = demCore::burkina_faso_data,
-      hyperparameters = original_hyperparameters,
-      settings = original_settings,
-      value_col = "value",
-      software = "tmb",
-    ),
-    NA
-  )
-
-  draws_tmb <- testthat::expect_silent(
-    popMethods::popReconstruct_posterior_draws(
-      fit = fit_tmb,
-      inputs = demCore::burkina_faso_initial_estimates,
-      settings = original_settings,
-      value_col = "value",
-      software = "tmb",
-      method_name = "original"
-    )
-  )
-  testthat::expect_equal("list", class(draws_tmb))
-  testthat::expect_equal("data.table", unique(sapply(draws_tmb, class)[1, ]))
-
-  summary_tmb <- testthat::expect_silent(
-    popMethods::popReconstruct_summarize_draws(
-      draws = draws_tmb,
-      summarize_cols = "draw"
-    )
-  )
-  testthat::expect_equal("list", class(summary_tmb))
-  testthat::expect_equal("data.table", unique(sapply(summary_tmb, class)[1, ]))
-})
-
-testthat::test_that("sampling from the original popReconstruct model prior works", {
-  draws_prior <- testthat::expect_output(
+test_prior <- function(inputs, hyperparameters) {
+  draws <- testthat::expect_output(
     popMethods::popReconstruct_prior_draws(
-      inputs = demCore::burkina_faso_initial_estimates,
-      hyperparameters = original_hyperparameters,
-      settings = original_settings,
+      inputs = inputs,
+      hyperparameters = hyperparameters,
+      settings = settings,
       value_col = "value",
       method_name = "Original"
     )
   )
-  testthat::expect_equal("list", class(draws_prior))
-  testthat::expect_equal("data.table", unique(sapply(draws_prior, class)[1, ]))
+  testthat::expect_equal("list", class(draws))
+  testthat::expect_equal("data.table", unique(sapply(draws, class)[1, ]))
 
   summary_prior <- testthat::expect_silent(
     popMethods::popReconstruct_summarize_draws(
-      draws = draws_prior,
+      draws = draws,
       summarize_cols = "draw"
     )
   )
   testthat::expect_equal("list", class(summary_prior))
   testthat::expect_equal("data.table", unique(sapply(summary_prior, class)[1, ]))
+}
+
+# Test the original popReconstruct model specification --------------------
+
+testthat::test_that("the original popReconstruct model works in stan", {
+  test_fit(
+    inputs = demCore::burkina_faso_initial_estimates,
+    hyperparameters = hyperparameters,
+    software = "stan",
+    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
+  )
+})
+
+testthat::test_that("the original popReconstruct model works in tmb", {
+  test_fit(
+    inputs = demCore::burkina_faso_initial_estimates,
+    hyperparameters = hyperparameters,
+    software = "tmb"
+  )
+})
+
+testthat::test_that("sampling from the original popReconstruct model prior works", {
+  test_prior(
+    inputs = demCore::burkina_faso_initial_estimates,
+    hyperparameters = hyperparameters
+  )
+})
+
+# Test popReconstruct with immigration/emigration -------------------------
+
+# create inputs for immigration and emigration
+inputs <- copy(demCore::burkina_faso_initial_estimates)
+inputs$immigration <- inputs$net_migration
+inputs$immigration[, value := 0.1]
+inputs$emigration <- inputs$net_migration
+inputs$emigration[, value := 0.1]
+inputs$net_migration <- NULL
+
+hyperparameters$immigration <- hyperparameters$net_migration
+hyperparameters$emigration <- hyperparameters$net_migration
+hyperparameters$net_migration <- NULL
+
+testthat::test_that("the popReconstruct (immigration/emigration)  model works in stan", {
+  test_fit(
+    inputs = inputs,
+    hyperparameters = hyperparameters,
+    software = "stan",
+    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
+  )
+})
+
+testthat::test_that("the popReconstruct model (immigration/emigration) works in tmb", {
+  test_fit(
+    inputs = inputs,
+    hyperparameters = hyperparameters,
+    software = "tmb"
+  )
+})
+
+testthat::test_that("sampling from popReconstruct (immigration/emigration) model prior works", {
+  test_prior(
+    inputs = inputs,
+    hyperparameters = hyperparameters
+  )
 })

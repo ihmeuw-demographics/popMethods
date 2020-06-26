@@ -29,29 +29,26 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
     settings$years_census <- unique(data$population$year)
   }
 
+  # "fixed_parameters" setting
+  if ("fixed_parameters" %in% names(settings)) {
+    assertthat::assert_that(
+      all(settings$fixed_parameters %in% names(inputs)),
+      msg = "setting 'fixed_parameters' must correspond to given `inputs`"
+    )
+  } else {
+    settings$fixed_parameters <- ifelse(identical(settings$sexes, "female"),
+                                        "srb", "")
+  }
+
+  # add model components that are not being estimated
+  model_components <- c("srb", "asfr", "baseline", "survival",
+                        "net_migration", "immigration", "emigration")
+  settings$fixed_parameters <- unique(c(settings$fixed_parameters,
+                                        setdiff(model_components, names(inputs))))
+
+  settings$estimated_parameters <- names(inputs)[!names(inputs) %in%
+                                                   settings$fixed_parameters]
   settings$migration_parameters <- grep("migration$", names(inputs), value = T)
-
-  # "fixed_parameters" setting
-  if ("fixed_parameters" %in% names(settings)) {
-    assertthat::assert_that(
-      all(settings$fixed_parameters %in% names(inputs)),
-      msg = "setting 'fixed_parameters' must correspond to given `inputs`"
-    )
-  } else {
-    settings$fixed_parameters <- ifelse(identical(settings$sexes, "female"),
-                                        "srb", "")
-  }
-
-  # "fixed_parameters" setting
-  if ("fixed_parameters" %in% names(settings)) {
-    assertthat::assert_that(
-      all(settings$fixed_parameters %in% names(inputs)),
-      msg = "setting 'fixed_parameters' must correspond to given `inputs`"
-    )
-  } else {
-    settings$fixed_parameters <- ifelse(identical(settings$sexes, "female"),
-                                        "srb", "")
-  }
 
   # "n_draws" setting
   if ("n_draws" %in% names(settings)) {
@@ -64,8 +61,10 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
     settings$n_draws <- 1000
   }
 
+  all_components <- c(settings$estimated_parameters, settings$fixed_parameters)
+
   # "k_years_{input_name}" setting
-  for (comp in setdiff(names(inputs), "baseline")) {
+  for (comp in setdiff(all_components, "baseline")) {
     setting_name <- paste0("k_years_", comp)
     if (setting_name %in% names(settings)) {
       setting_value <- settings[[setting_name]]
@@ -82,7 +81,7 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
   }
 
   # "k_ages_{input_name}" setting
-  for (comp in setdiff(names(inputs), "srb")) {
+  for (comp in setdiff(all_components, "srb")) {
     setting_name <- paste0("k_ages_", comp)
 
     # determine the expected ages for each component
@@ -254,6 +253,53 @@ create_detailed_settings <- function(settings) {
       transformation = NULL,
       inverse_transformation = NULL,
       fixed = "net_migration" %in% settings$fixed_parameters
+    ),
+    immigration = list(
+      measure_type = "flow",
+      id_cols = c("year_start", "year_end", "sex", "age_start", "age_end"),
+      years = settings$years,
+      years_knots = settings$k_years_immigration,
+      B_t = splines::bs(
+        x = settings$years,
+        knots = settings$k_years_immigration[-length(settings$k_years_immigration)],
+        degree = 1
+      ),
+      sexes = settings$sexes,
+      ages = settings$ages,
+      ages_knots = settings$k_ages_immigration,
+      B_a = splines::bs(
+        x = settings$ages,
+        knots = settings$k_ages_immigration[-length(settings$k_ages_immigration)],
+        degree = 1
+      ),
+      transformation_name = "log",
+      transformation = log,
+      inverse_transformation = exp,
+      fixed = "immigration" %in% settings$fixed_parameters
+    ),
+    emigration = list(
+      measure_type = "flow",
+      id_cols = c("year_start", "year_end", "sex", "age_start", "age_end"),
+      years = settings$years,
+      years_knots = settings$k_years_emigration,
+      B_t = splines::bs(
+        x = settings$years,
+        knots = settings$k_years_emigration[-length(settings$k_years_emigration)],
+        degree = 1
+      ),
+      sexes = settings$sexes,
+      ages = settings$ages,
+      ages_knots = settings$k_ages_emigration,
+      B_a = splines::bs(
+        x = settings$ages,
+        knots = settings$k_ages_emigration[-length(settings$k_ages_emigration)],
+        degree = 1
+      ),
+      transformation_name = "log",
+      transformation = log,
+      inverse_transformation = exp,
+      fixed = "emigration" %in% settings$fixed_parameters
     )
   )
+  return(component_settings)
 }

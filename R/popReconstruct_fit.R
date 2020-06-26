@@ -155,7 +155,7 @@
 #' Data.” Journal of the American Statistical Association 108 (501): 96–110.
 #' [https://doi.org/10.1080/01621459.2012.737729](https://doi.org/10.1080/01621459.2012.737729).
 #'
-#' [popReconstruct R Package](https://cran.r-project.org/web/packages/popReconstruct/popReconstruct.pdf)
+#' [popReconstruct R Package](https://CRAN.R-project.org/package=popReconstruct)
 #'
 #' Wheldon, Mark C., Adrian E. Raftery, Samuel J. Clark, and Patrick Gerland.
 #' 2015. “Bayesian Reconstruction of Two-Sex Populations by Age: Estimating Sex
@@ -246,7 +246,8 @@ popReconstruct_fit <- function(inputs,
   detailed_settings <- create_detailed_settings(settings)
 
   validate_popReconstruct_hyperparameters(hyperparameters, inputs, settings)
-  validate_popReconstruct_data(data, settings, value_col)
+  validate_popReconstruct_data(data, settings, detailed_settings, value_col)
+  validate_popReconstruct_inputs(inputs, settings, detailed_settings, value_col)
 
   # Create input objects for fitting model ----------------------------------
 
@@ -275,7 +276,19 @@ popReconstruct_fit <- function(inputs,
   )
 
   prep_input_array <- function(component, list_dt, detailed_settings) {
+    comp_settings <- detailed_settings[[component]]
+
     dt <- copy(list_dt[[component]])
+
+    create_temp_data <- is.null(dt)
+    if (create_temp_data) {
+      # for the migration parameters not being estimated need to create temp data
+      dt <- list(comp_settings$years, comp_settings$sexes,
+                 comp_settings$ages, value = 0)
+      names(dt) <- c("year_start", "sex", "age_start", value_col)
+      dt <- dt[!mapply(is.null, dt)]
+      dt <- do.call(data.table::CJ, dt)
+    }
 
     # transform value
     setnames(dt, value_col, "value")
@@ -283,6 +296,7 @@ popReconstruct_fit <- function(inputs,
     if (!is.null(transformation)) {
       dt <- dt[, value := transformation(value)]
     }
+    if (create_temp_data) dt[, value := 0]
 
     # convert from dt to matrix format
     mdt <- demCore:::dt_to_matrix(
@@ -326,8 +340,10 @@ popReconstruct_fit <- function(inputs,
   }
 
   # prepare initial estimates and parameters for all possible components
-  # specified in the stan and tmb models
-  all_ccmpp_inputs <- c("srb", "asfr", "baseline", "survival", "net_migration")
+  # specified in the stan and tmb models, even if the component is not being
+  # estimated, placeholders will be added
+  all_ccmpp_inputs <- c("srb", "asfr", "baseline", "survival",
+                        "net_migration", "immigration", "emigration")
   for (component in all_ccmpp_inputs) {
 
     sexes <- detailed_settings[[component]][["sexes"]]
@@ -335,16 +351,12 @@ popReconstruct_fit <- function(inputs,
     ages_knots <- detailed_settings[[component]][["ages_knots"]]
 
     # add B-spline basis functions
-    if ("B_t" %in% names(detailed_settings[[component]])) {
-      input_data[[paste0("N_k_t_", component)]] <- length(years_knots)
-      input_data[[paste0("B_t_", component)]] <-
-        detailed_settings[[component]][["B_t"]]
-    }
-    if ("B_a" %in% names(detailed_settings[[component]])) {
-      input_data[[paste0("N_k_a_", component)]] <- length(ages_knots)
-      input_data[[paste0("B_a_", component)]] <-
-        detailed_settings[[component]][["B_a"]]
-    }
+    input_data[[paste0("N_k_t_", component)]] <- length(years_knots)
+    input_data[[paste0("B_t_", component)]] <-
+      detailed_settings[[component]][["B_t"]]
+    input_data[[paste0("N_k_a_", component)]] <- length(ages_knots)
+    input_data[[paste0("B_a_", component)]] <-
+      detailed_settings[[component]][["B_a"]]
 
     # add initial input estimates
     input_adt <- prep_input_array(component, inputs, detailed_settings)
@@ -386,7 +398,7 @@ popReconstruct_fit <- function(inputs,
   # prepare data and parameters for all possible components specified in the
   # stan and tmb models
   all_variance_inputs <- c("srb", "asfr", "population", "survival",
-                           "net_migration")
+                           "net_migration", "immigration", "emigration")
   for (component in all_variance_inputs) {
     # add alpha and beta hyperparameters
     for (param in c("alpha", "beta")) {
@@ -441,6 +453,8 @@ popReconstruct_fit <- function(inputs,
       names(map) <- names(fix_params)
     }
 
+    input_data$estimate_net_migration <- "net_migration" %in% settings$estimated_parameters
+
     # make objective function
     input_data <- c(list(model = "popReconstruct"), input_data)
     obj <- TMB::MakeADFun(
@@ -467,6 +481,12 @@ popReconstruct_fit <- function(inputs,
   return(fit)
 }
 
+#' @title Helper function to validate hyperparameter values
+#'
+#' @description Assert that the list of hyperparameters includes all expected
+#'   components that are not fixed in the model.
+#'
+#' @inheritParams popReconstruct_fit
 validate_popReconstruct_hyperparameters <- function(hyperparameters,
                                                     inputs,
                                                     settings) {
@@ -486,10 +506,19 @@ validate_popReconstruct_hyperparameters <- function(hyperparameters,
                  "level containing each non-fixed model component and the ",
                  "second level containing named 'alpha' and 'beta' parameters.")
   )
-
 }
 
-validate_popReconstruct_data <- function(data, settings, value_col) {
+#' @title Helper function to validate input data
+#'
+#' @description Assert that the input data.tables includes all expected columns,
+#'   combinations of id variables, and that the transformed values are finite.
+#'
+#' @inheritParams popReconstruct_fit
+#' @inheritParams extract_stan_draws
+validate_popReconstruct_data <- function(data,
+                                         settings,
+                                         detailed_settings,
+                                         value_col) {
 
   # check all required columns are present in `data`
   component_cols <- list(
@@ -528,6 +557,47 @@ validate_popReconstruct_data <- function(data, settings, value_col) {
     }
     assertable::assert_values(data[[component]], colnames = value_col,
                               test = "not_na", quiet = T)
-  }
 
+    # calculate transformed values
+    transformation <- detailed_settings[[component]][["transformation"]]
+    transformed_values <- data[[component]][[value_col]]
+    if (!is.null(transformation)) {
+      transformed_values <- transformation(transformed_values)
+    }
+
+    assertthat::assert_that(
+      all(is.finite(transformed_values)),
+      msg = paste0("'", component, "' data once transformed must be a finite ",
+                   "value (-Inf < value < Inf)")
+    )
+  }
+}
+
+#' @title Helper function to validate initial input data.tables
+#'
+#' @description Assert that each of the inputs once transformed is a finite
+#'   value greater than negative Infinity and less than positive Infinity.
+#'
+#' @inheritParams popReconstruct_fit
+#' @inheritParams extract_stan_draws
+validate_popReconstruct_inputs <- function(inputs,
+                                           settings,
+                                           detailed_settings,
+                                           value_col) {
+
+  for (component in names(inputs)) {
+
+    # calculate transformed values
+    transformation <- detailed_settings[[component]][["transformation"]]
+    transformed_values <- inputs[[component]][[value_col]]
+    if (!is.null(transformation)) {
+      transformed_values <- transformation(transformed_values)
+    }
+
+    assertthat::assert_that(
+      all(is.finite(transformed_values)),
+      msg = paste0("'", component, "' input once transformed must be a finite ",
+                   "value (-Inf < value < Inf)")
+    )
+  }
 }
