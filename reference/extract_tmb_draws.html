@@ -129,7 +129,7 @@
     <p>Extract draws from the popReconstruct model TMB fit</p>
     </div>
 
-    <pre class="usage"><span class='fu'>extract_tmb_draws</span>(<span class='no'>fit</span>, <span class='no'>inputs</span>, <span class='no'>settings</span>)</pre>
+    <pre class="usage"><span class='fu'>extract_tmb_draws</span>(<span class='kw'>fit</span>, <span class='kw'>inputs</span>, <span class='kw'>settings</span>, <span class='kw'>detailed_settings</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -137,14 +137,14 @@
     <tr>
       <th>fit</th>
       <td><p>[<code>stanfit(1)</code>] or [<code>sdreport(1)</code>]<br />
-Model fit object returned by <code><a href='popReconstruct_fit.html'>popReconstruct_fit()</a></code>.</p></td>
+Model fit object returned by <code>popReconstruct_fit()</code>.</p></td>
     </tr>
     <tr>
       <th>inputs</th>
       <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>]<br />
 [<code>data.table()</code>] for each ccmpp input. Requires 'srb', 'asfr', 'baseline',
 and 'survival'; and migration estimates provided as just 'net_migration' or
-'immigration' and 'emigration'. See <strong>Section: Inputs</strong> for more
+both 'immigration' and 'emigration'. See <strong>Section: Inputs</strong> for more
 information on each of the required inputs.</p></td>
     </tr>
     <tr>
@@ -156,11 +156,16 @@ see <strong>Section: Settings</strong> for these. The optional settings specific
 popReconstruct are described in
 <strong>Section: Optional popReconstruct Settings</strong></p></td>
     </tr>
+    <tr>
+      <th>detailed_settings</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>]<br />
+Detailed settings for each ccmpp input and 'population'.</p></td>
+    </tr>
     </table>
 
     <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
 
-    <div class='dont-index'><p><code><a href='popReconstruct_fit.html'>popReconstruct_posterior_draws()</a></code></p></div>
+    <div class='dont-index'><p><code>popReconstruct_posterior_draws()</code></p></div>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

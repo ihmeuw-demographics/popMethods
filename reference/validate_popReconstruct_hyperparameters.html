@@ -6,8 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Calculate the beta hyperparameter for popReconstruct variance
-parameters. — calculate_beta • popMethods</title>
+<title>Helper function to validate hyperparameter values — validate_popReconstruct_hyperparameters • popMethods</title>
 
 
 <!-- jquery -->
@@ -40,12 +39,9 @@ parameters. — calculate_beta • popMethods</title>
 
 
 
-<meta property="og:title" content="Calculate the beta hyperparameter for popReconstruct variance
-parameters. — calculate_beta" />
-<meta property="og:description" content="Helper function for calculating the beta parameter of an inverse
-gamma distribution given absolute deviation from the popReconstruct
-elicitation statement. Used for quantifying measurement error in
-popReconstruct components." />
+<meta property="og:title" content="Helper function to validate hyperparameter values — validate_popReconstruct_hyperparameters" />
+<meta property="og:description" content="Assert that the list of hyperparameters includes all expected
+components that are not fixed in the model." />
 
 
 
@@ -125,51 +121,47 @@ popReconstruct components." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Calculate the beta hyperparameter for popReconstruct variance
-parameters.</h1>
-    <small class="dont-index">Source: <a href='https://github.com/ihmeuw-demographics/popMethods/blob/master/R/popReconstruct_hyperparameters.R'><code>R/popReconstruct_hyperparameters.R</code></a></small>
-    <div class="hidden name"><code>calculate_beta.Rd</code></div>
+    <h1>Helper function to validate hyperparameter values</h1>
+    <small class="dont-index">Source: <a href='https://github.com/ihmeuw-demographics/popMethods/blob/master/R/popReconstruct_fit.R'><code>R/popReconstruct_fit.R</code></a></small>
+    <div class="hidden name"><code>validate_popReconstruct_hyperparameters.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Helper function for calculating the beta parameter of an inverse
-gamma distribution given absolute deviation from the popReconstruct
-elicitation statement. Used for quantifying measurement error in
-popReconstruct components.</p>
+    <p>Assert that the list of hyperparameters includes all expected
+components that are not fixed in the model.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>calculate_beta</span>(<span class='kw'>abs_deviation</span>, <span class='kw'>p</span>, <span class='kw'>alpha</span>, <span class='kw'>log_transform</span>)</pre>
+    <pre class="usage"><span class='fu'>validate_popReconstruct_hyperparameters</span>(<span class='kw'>hyperparameters</span>, <span class='kw'>inputs</span>, <span class='kw'>settings</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>abs_deviation</th>
-      <td><p>[<code><a href='https://rdrr.io/r/base/numeric.html'>numeric(1)</a></code>]<br />
-Expert opinion about the absolute deviation \(\eta_{\nu}\) of the initial
-point estimates for a given probability interval \(p_{\nu}\).</p></td>
+      <th>hyperparameters</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>]<br />
+List for each model component ('srb', 'asfr', ...) that itself contains a
+list specifying the alpha (shape) and beta (scale) hyperparameters for the
+variance of each model component.</p></td>
     </tr>
     <tr>
-      <th>p</th>
-      <td><p>[<code><a href='https://rdrr.io/r/base/numeric.html'>numeric(1)</a></code>]<br />
-Central \(p_{\nu}\)% probability interval used in elicitation statement.</p></td>
+      <th>inputs</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>]<br />
+[<code>data.table()</code>] for each ccmpp input. Requires 'srb', 'asfr', 'baseline',
+and 'survival'; and migration estimates provided as just 'net_migration' or
+both 'immigration' and 'emigration'. See <strong>Section: Inputs</strong> for more
+information on each of the required inputs.</p></td>
     </tr>
     <tr>
-      <th>alpha</th>
-      <td><p>[<code><a href='https://rdrr.io/r/base/numeric.html'>numeric(1)</a></code>]<br />
-Alpha (shape) parameter of inverse gamma distribution.</p></td>
-    </tr>
-    <tr>
-      <th>log_transform</th>
-      <td><p>[<code><a href='https://rdrr.io/r/base/logical.html'>logical(1)</a></code>]<br />
-Whether model component is log transformed in the popReconstruct model.</p></td>
+      <th>settings</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>]<br />
+Named list of settings for running the popReconstruct model with. The
+required settings are the same as those required for <code><a href='https://rdrr.io/pkg/demCore/man/ccmpp.html'>demCore::ccmpp()</a></code>,
+see <strong>Section: Settings</strong> for these. The optional settings specific to
+popReconstruct are described in
+<strong>Section: Optional popReconstruct Settings</strong></p></td>
     </tr>
     </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
-
-    <p>[<code><a href='https://rdrr.io/r/base/numeric.html'>numeric(1)</a></code>] Beta (scale) parameter of inverse gamma distribution
-for the variance of the popReconstruct model component.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
