@@ -61,6 +61,8 @@ popReconstruct_posterior_draws <- function(fit,
 #' @title Helper function to extract draws from popReconstruct stan fits
 #'
 #' @inheritParams popReconstruct_posterior_draws
+#' @param detailed_settings \[`list()`\]\cr
+#'   Detailed settings for each ccmpp input and 'population'.
 #'
 #' @seealso [`popReconstruct_posterior_draws()`]
 extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
@@ -212,7 +214,7 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
 
 #' @title Extract draws from the popReconstruct model TMB fit
 #'
-#' @inheritParams popReconstruct_posterior_draws
+#' @inheritParams extract_stan_draws
 #'
 #' @seealso [`popReconstruct_posterior_draws()`]
 extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
@@ -620,8 +622,7 @@ popReconstruct_prior_draws <- function(inputs,
 #' @param offset_draws \[`list()`\] of \[`data.table()`\]\cr
 #'   Draws of directly modeled offset parameters for all ccmpp inputs as
 #'   prepared in the `popReconstruct_*_draws()` functions.
-#' @param detailed_settings \[`list()`\]\cr
-#'   Detailed settings for each ccmpp input and 'population'.
+#' @inheritParams extract_stan_draws
 #' @param draw_col_name \[`character(1)`\]\cr
 #'   Name of column in `offset_draws` \[`data.table()`\] that corresponds to
 #'   draw index

@@ -22,6 +22,9 @@ required settings are the same as those required for \code{\link[demCore:ccmpp]{
 see \strong{Section: Settings} for these. The optional settings specific to
 popReconstruct are described in
 \strong{Section: Optional popReconstruct Settings}}
+
+\item{detailed_settings}{[\code{list()}]\cr
+Detailed settings for each ccmpp input and 'population'.}
 }
 \description{
 Extract draws from the popReconstruct model TMB fit

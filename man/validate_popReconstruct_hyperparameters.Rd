@@ -6,6 +6,25 @@
 \usage{
 validate_popReconstruct_hyperparameters(hyperparameters, inputs, settings)
 }
+\arguments{
+\item{hyperparameters}{[\code{list()}]\cr
+List for each model component ('srb', 'asfr', ...) that itself contains a
+list specifying the alpha (shape) and beta (scale) hyperparameters for the
+variance of each model component.}
+
+\item{inputs}{[\code{list()}]\cr
+[\code{data.table()}] for each ccmpp input. Requires 'srb', 'asfr', 'baseline',
+and 'survival'; and migration estimates provided as just 'net_migration' or
+both 'immigration' and 'emigration'. See \strong{Section: Inputs} for more
+information on each of the required inputs.}
+
+\item{settings}{[\code{list()}]\cr
+Named list of settings for running the popReconstruct model with. The
+required settings are the same as those required for \code{\link[demCore:ccmpp]{demCore::ccmpp()}},
+see \strong{Section: Settings} for these. The optional settings specific to
+popReconstruct are described in
+\strong{Section: Optional popReconstruct Settings}}
+}
 \description{
 Assert that the list of hyperparameters includes all expected
 components that are not fixed in the model.

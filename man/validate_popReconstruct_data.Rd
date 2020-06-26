@@ -6,6 +6,22 @@
 \usage{
 validate_popReconstruct_data(data, settings, detailed_settings, value_col)
 }
+\arguments{
+\item{data}{[\code{list()}]\cr
+[\code{data.table()}] for each type of data input for the model (currently
+only 'population'). See \strong{Section: Data} for more information.}
+
+\item{settings}{[\code{list()}]\cr
+Named list of settings for running the popReconstruct model with. The
+required settings are the same as those required for \code{\link[demCore:ccmpp]{demCore::ccmpp()}},
+see \strong{Section: Settings} for these. The optional settings specific to
+popReconstruct are described in
+\strong{Section: Optional popReconstruct Settings}}
+
+\item{value_col}{[\code{character(1)}]\cr
+Name of the column containing the value of interest in each of the
+\code{inputs}. Default is 'value'.}
+}
 \description{
 Assert that the input data.tables includes all expected columns,
 combinations of id variables, and that the transformed values are finite.

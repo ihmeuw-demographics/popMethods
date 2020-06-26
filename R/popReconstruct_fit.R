@@ -485,6 +485,8 @@ popReconstruct_fit <- function(inputs,
 #'
 #' @description Assert that the list of hyperparameters includes all expected
 #'   components that are not fixed in the model.
+#'
+#' @inheritParams popReconstruct_fit
 validate_popReconstruct_hyperparameters <- function(hyperparameters,
                                                     inputs,
                                                     settings) {
@@ -510,6 +512,8 @@ validate_popReconstruct_hyperparameters <- function(hyperparameters,
 #'
 #' @description Assert that the input data.tables includes all expected columns,
 #'   combinations of id variables, and that the transformed values are finite.
+#'
+#' @inheritParams popReconstruct_fit
 validate_popReconstruct_data <- function(data,
                                          settings,
                                          detailed_settings,
@@ -572,6 +576,9 @@ validate_popReconstruct_data <- function(data,
 #'
 #' @description Assert that each of the inputs once transformed is a finite
 #'   value greater than negative Infinity and less than positive Infinity.
+#'
+#' @inheritParams popReconstruct_fit
+
 validate_popReconstruct_inputs <- function(inputs,
                                            settings,
                                            detailed_settings,
