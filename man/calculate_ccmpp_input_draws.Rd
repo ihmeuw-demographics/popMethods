@@ -14,7 +14,7 @@ Draws of spline offsets as returned by \code{\link[=calculate_spline_offset_draw
 \item{inputs}{[\code{list()}]\cr
 [\code{data.table()}] for each ccmpp input. Requires 'srb', 'asfr', 'baseline',
 and 'survival'; and migration estimates provided as just 'net_migration' or
-'immigration' and 'emigration'. See \strong{Section: Inputs} for more
+both 'immigration' and 'emigration'. See \strong{Section: Inputs} for more
 information on each of the required inputs.}
 
 \item{detailed_settings}{[\code{list()}]\cr
