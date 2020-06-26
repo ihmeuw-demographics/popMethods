@@ -514,6 +514,7 @@ validate_popReconstruct_hyperparameters <- function(hyperparameters,
 #'   combinations of id variables, and that the transformed values are finite.
 #'
 #' @inheritParams popReconstruct_fit
+#' @inheritParams extract_stan_draws
 validate_popReconstruct_data <- function(data,
                                          settings,
                                          detailed_settings,
@@ -578,7 +579,7 @@ validate_popReconstruct_data <- function(data,
 #'   value greater than negative Infinity and less than positive Infinity.
 #'
 #' @inheritParams popReconstruct_fit
-
+#' @inheritParams extract_stan_draws
 validate_popReconstruct_inputs <- function(inputs,
                                            settings,
                                            detailed_settings,

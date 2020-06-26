@@ -18,6 +18,9 @@ see \strong{Section: Settings} for these. The optional settings specific to
 popReconstruct are described in
 \strong{Section: Optional popReconstruct Settings}}
 
+\item{detailed_settings}{[\code{list()}]\cr
+Detailed settings for each ccmpp input and 'population'.}
+
 \item{value_col}{[\code{character(1)}]\cr
 Name of the column containing the value of interest in each of the
 \code{inputs}. Default is 'value'.}
