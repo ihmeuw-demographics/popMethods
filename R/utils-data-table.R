@@ -17,9 +17,10 @@ NULL
 # https://www.r-bloggers.com/no-visible-binding-for-global-variable/
 # https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when
 # https://community.rstudio.com/t/how-to-solve-no-visible-binding-for-global-variable-note/28887
-utils::globalVariables(c("initial", "value", "parameter", "parameters",
-                         "method",
-                         "original_draw", "draw", "chain_draw", "chain",
-                         "year_start", "year_end", "year_index",
-                         "sex", "sex_index",
-                         "age_start", "age_index"))
+utils::globalVariables(
+  c("initial", "value", "parameter", "parameters", "method", "weight",
+    "original_draw", "draw", "chain_draw", "chain",
+    "year", "year_start", "year_index", "year_index_start", "year_index_end",
+    "sex", "sex_index", "sex_index_start", "sex_index_end",
+    "age_start", "age_end", "age_index", "age_index_start", "age_index_end")
+)

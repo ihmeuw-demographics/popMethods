@@ -61,6 +61,26 @@ functions {
 
     return(population);
   }
+
+  real[] aggregate(matrix[] population, int[, ] input_pop_year_index,
+                   int[, ] input_pop_age_index, int[, ] input_pop_sex_index,
+                   int N_pop) {
+
+    real population_aggregated[N_pop];
+    for (i in 1:N_pop) {
+      real sum_pop = 0;
+      for (y in input_pop_year_index[i, 1]:(input_pop_year_index[i, 2] - 1)) {
+        for (a in input_pop_age_index[i, 1]:(input_pop_age_index[i, 2] - 1)) {
+          for (s in input_pop_sex_index[i, 1]:(input_pop_sex_index[i, 2] - 1)) {
+            sum_pop += population[s, a, y];
+          }
+        }
+      }
+      population_aggregated[i] = sum_pop;
+    }
+
+    return population_aggregated;
+  }
 }
 data {
   // general setup variables
@@ -71,7 +91,6 @@ data {
   int A_f_offset; // number of younger age groups that are not included in the reproductive ages
   int Y; // number of year intervals in projection period
   int Y_p; // number of population data years (not including the baseline year)
-  int pop_data_years_index[Y_p]; // columns in population object that correspond to population data years
 
   // whether to estimate or fix certain model components
   int<lower = 0, upper = 1> estimate_srb;
@@ -140,7 +159,12 @@ data {
   matrix[A, N_k_a_emigration] B_a_emigration;
 
   // population data
-  matrix[A, Y_p] input_log_population_data[sexes]; // population data
+  int N_pop; // number of year-age-sex specific population data points
+  real input_log_pop_value[N_pop]; // log population value for each year-age-sex specific data point
+  vector[N_pop] input_pop_weight; // population variance weighting value for each year-age-sex specific data point
+  int<lower = 1, upper = Y + 2>  input_pop_year_index[N_pop, 2]; // start (inclusive) and end (exclusive) indices for year in full 'population' object below
+  int<lower = 1, upper = A + 1> input_pop_age_index[N_pop, 2]; // start (inclusive) and end (exclusive) indices for age in full 'population' object below
+  int<lower = 1, upper = sexes + 1> input_pop_sex_index[N_pop, 2]; // start (inclusive) and end (exclusive) indices for sex in full 'population' object below
 }
 parameters {
   // variance parameters
@@ -164,6 +188,7 @@ parameters {
 transformed parameters {
   // initialize matrix to store projected population
   matrix<lower = 0>[A, Y + 1] population[sexes];
+  real population_input_groups[N_pop];
 
   // spline offset parameters
   matrix[1, Y] spline_offset_log_srb = rep_matrix(0, 1, Y);
@@ -224,8 +249,13 @@ transformed parameters {
   }
 
   // Level 2 (ccmpp)
+  // project population with most detailed age groups
   population = ccmpp(srb, asfr, baseline, survival, net_migration,
                      sexes, interval, A, A_f, A_f_offset, Y);
+  // aggregate to census age groups
+  population_input_groups = aggregate(population, input_pop_year_index,
+                                      input_pop_age_index, input_pop_sex_index,
+                                      N_pop);
 }
 model {
   // LEVEL 4 (informative prior distributions for variance parameters)
@@ -293,10 +323,7 @@ model {
       }
     }
   }
+
   // LEVEL 1 (model the census counts)
-  for (i in 1:Y_p) {
-    for (s in 1:sexes) {
-      input_log_population_data[s, , i] ~ normal(log(population[s, , pop_data_years_index[i]]), sqrt(sigma2_population));
-    }
-  }
+  input_log_pop_value ~ normal(log(population_input_groups), sqrt(sigma2_population) * input_pop_weight);
 }

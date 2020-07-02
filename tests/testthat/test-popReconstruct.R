@@ -15,12 +15,12 @@ hyperparameters <- list(
 )
 
 
-test_fit <- function(inputs, hyperparameters, software, ...) {
+test_fit <- function(inputs, data, hyperparameters, software, ...) {
 
   fit <- testthat::expect_error(
     popMethods::popReconstruct_fit(
       inputs = inputs,
-      data = demCore::burkina_faso_data,
+      data = data,
       hyperparameters = hyperparameters,
       settings = settings,
       value_col = "value",
@@ -83,6 +83,7 @@ test_prior <- function(inputs, hyperparameters) {
 testthat::test_that("the original popReconstruct model works in stan", {
   test_fit(
     inputs = demCore::burkina_faso_initial_estimates,
+    data = demCore::burkina_faso_data,
     hyperparameters = hyperparameters,
     software = "stan",
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
@@ -92,6 +93,7 @@ testthat::test_that("the original popReconstruct model works in stan", {
 testthat::test_that("the original popReconstruct model works in tmb", {
   test_fit(
     inputs = demCore::burkina_faso_initial_estimates,
+    data = demCore::burkina_faso_data,
     hyperparameters = hyperparameters,
     software = "tmb"
   )
@@ -101,6 +103,39 @@ testthat::test_that("sampling from the original popReconstruct model prior works
   test_prior(
     inputs = demCore::burkina_faso_initial_estimates,
     hyperparameters = hyperparameters
+  )
+})
+
+# Test popReconstruct with aggregate population data ----------------------
+
+# aggregate to total population
+age_mapping <- data.table(age_start = 0, age_end = Inf)
+aggregated_data <- copy(demCore::burkina_faso_data)
+aggregated_data$population <- hierarchyUtils::agg(
+  dt = aggregated_data$population,
+  id_cols = c("year", "sex", "age_start", "age_end"),
+  value_cols = "value",
+  col_stem = "age",
+  col_type = "interval",
+  mapping = age_mapping
+)
+
+testthat::test_that("the popReconstruct model (with aggregate data) works in stan", {
+  test_fit(
+    inputs = demCore::burkina_faso_initial_estimates,
+    data = aggregated_data,
+    hyperparameters = hyperparameters,
+    software = "stan",
+    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
+  )
+})
+
+testthat::test_that("the popReconstruct model (with aggregate data) works in tmb", {
+  test_fit(
+    inputs = demCore::burkina_faso_initial_estimates,
+    data = aggregated_data,
+    hyperparameters = hyperparameters,
+    software = "tmb"
   )
 })
 
@@ -121,6 +156,7 @@ hyperparameters$net_migration <- NULL
 testthat::test_that("the popReconstruct (immigration/emigration)  model works in stan", {
   test_fit(
     inputs = inputs,
+    data = demCore::burkina_faso_data,
     hyperparameters = hyperparameters,
     software = "stan",
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
@@ -130,6 +166,7 @@ testthat::test_that("the popReconstruct (immigration/emigration)  model works in
 testthat::test_that("the popReconstruct model (immigration/emigration) works in tmb", {
   test_fit(
     inputs = inputs,
+    data = demCore::burkina_faso_data,
     hyperparameters = hyperparameters,
     software = "tmb"
   )

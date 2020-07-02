@@ -195,7 +195,7 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
   # extract projected population parameters
   population_draws <- format_draws(
     comp = "population",
-    param = "population",
+    param = "population\\[",
     settings,
     detailed_settings[["population"]]
   )
