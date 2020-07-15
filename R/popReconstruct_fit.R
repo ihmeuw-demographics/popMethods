@@ -85,6 +85,16 @@
 #'
 #' @inheritSection demCore::ccmpp Inputs
 #'
+#' @section Data:
+#' population: \[`data.table()`\]\cr
+#'   * year: \[`integer()`\] year of population data.
+#'   * sex: \[`character()`\] either 'female', 'male', or 'both'. If 'sexes'
+#'   `setting` is 'female' can only have 'female' input data.
+#'   * age_start: \[`integer()`\] start of the age group (inclusive).
+#'   Corresponds to 'ages' `setting`. Age groups included must not overlap.
+#'   * age_end: \[`integer()`\] end of the age group (exclusive).
+#'   * `value_col`: \[`numeric()`\] population count, must be greater than zero.
+#'
 #' @section `popReconstruct_fit` Value:
 #' If fit using 'stan' an object of class `stanfit` and if fit using 'tmb' an
 #' object of class `sdreport`. Either represents the fitted results that can be
@@ -213,6 +223,7 @@
 #' @seealso [`demUtils::summarize_dt()`]
 #' @seealso [`rbindlist_dts()`]
 #' @seealso `vignette("popReconstruct")`
+#' @seealso `vignette("popReconstruct_options")`
 #' @family popReconstruct
 #'
 #' @import Rcpp
