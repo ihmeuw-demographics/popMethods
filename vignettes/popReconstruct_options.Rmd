@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 ```
 
 The purpose of this vignette is to explain the alternative popReconstruct model specifications implemented in this package and how to run `popReconstruct_fit()` with these different specifications.
-These methods have been developed in response to trying to implement the popReconstruct model at scale with varying quality of input data but have not yet been published.
+These modifications to the original popReconstruct have been developed while implementing the popReconstruct model at scale with varying quality of input data but the modifications have not yet been published.
 
 # Original popReconstruct model
 
@@ -33,6 +33,8 @@ This allows one to set separate hyperparameters for immigration and emigration i
 
 Below, the net migration (`g`) inputs and parameters have been replaced by immigration `i` and emigration `e` components.
 
+**Level 1** (likelihood for census counts):
+$$\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)$$
 **Level 2** (map from ccmpp input parameters to projected population counts):
 $$n_{l,a,t} = \text{CCMPP}(srb_t, f_{a,t}, n_{l,a,t_0}, s_{l,a,t}, i_{l,a,t}, e_{l,a,t})$$
 **Level 3.1** (calculate the estimated ccmpp inputs):
@@ -204,7 +206,7 @@ And combined for year and age specific parameters like for asfr, survival and mi
 
 ## popReconstruct with Linear Splines
 
-Level 3 of popReconstruct can be rewritten with the linear splines included. This isn't clear with the notation used but each of the year specific and age specific knots can be different for each component (srb, asfr, etc.).
+Level 3 of popReconstruct can be rewritten with the linear splines included. Each of the year specific and age specific knots can be different for each component (srb, asfr, etc.).
 
 **Level 3.1** (calculate the estimated ccmpp inputs):
 $$\begin{aligned} \text{log} \ srb_t &= \text{log} \ srb^*_t + \delta^{srb}_{k_t}{\mathbf{B}^{srb}_t}^\intercal \\
@@ -230,7 +232,7 @@ k_t &= \text{year-specific knots} \\
 
 This model specification can:
 
-* reduce computation time since there are less parameters to be estimated.
+* reduce computation time since there are fewer parameters to be estimated.
 
 * smooth deviations from the initial input estimates.
 
