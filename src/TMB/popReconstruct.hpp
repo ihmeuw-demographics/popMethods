@@ -80,6 +80,27 @@ array<Type> ccmpp(array<Type> srb, array<Type> asfr, array<Type> baseline,
   return(population);
 }
 
+template<class Type>
+vector<Type> aggregate(array<Type> population, array<int> input_pop_year_index,
+                       array<int> input_pop_age_index, array<int> input_pop_sex_index,
+                       int N_pop) {
+
+  vector<Type> population_aggregated(N_pop);
+  for (int i = 0; i < N_pop; i++) {
+    Type sum_pop = 0;
+    for (int y = input_pop_year_index(i, 0); y < input_pop_year_index(i, 1); y++) {
+      for (int a = input_pop_age_index(i, 0); a < input_pop_age_index(i, 1); a++) {
+        for (int s = input_pop_sex_index(i, 0); s < input_pop_sex_index(i, 1); s++) {
+          sum_pop += population(a, y, s);
+        }
+      }
+    }
+    population_aggregated(i) = sum_pop;
+  }
+
+  return(population_aggregated);
+}
+
 /// Negative log-likelihood of the popReconstruct model.
 template<class Type>
 Type popReconstruct(objective_function<Type>* obj) {
@@ -94,7 +115,6 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_INTEGER(A_f_offset); // number of younger age groups that are not included in the reproductive ages
   DATA_INTEGER(Y); // number of year intervals in projection period
   DATA_INTEGER(Y_p); // number of population data years (not including the baseline year)
-  DATA_IVECTOR(pop_data_years_index); // columns in population object that correspond to population data years
   DATA_INTEGER(estimate_net_migration); // whether to estimate net migration (or immigration and emigration separately)
 
   // inverse gamma alpha and beta hyperparameters for ccmpp inputs
@@ -155,8 +175,13 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_MATRIX(B_a_emigration);
 
   // population data
-  DATA_ARRAY(input_log_population_data); // population data
-
+  // population data
+  DATA_INTEGER(N_pop); // number of year-age-sex specific population data points
+  DATA_VECTOR(input_log_pop_value); // log population value for each year-age-sex specific data point
+  DATA_VECTOR(input_pop_weight); // population variance weighting value for each year-age-sex specific data point
+  DATA_IARRAY(input_pop_year_index); // start (inclusive) and end (exclusive) indices for year in full 'population' object below
+  DATA_IARRAY(input_pop_age_index); // start (inclusive) and end (exclusive) indices for age in full 'population' object below
+  DATA_IARRAY(input_pop_sex_index); // start (inclusive) and end (exclusive) indices for sex in full 'population' object below
 
   ////// parameter section
 
@@ -270,8 +295,14 @@ Type popReconstruct(objective_function<Type>* obj) {
 
   // Level 2 (ccmpp)
   array<Type> population(A, Y + 1, sexes);
+  // project population with most detailed age groups
   population = ccmpp(srb, asfr, baseline, survival, net_migration,
                      sexes, interval, A, A_f, A_f_offset, Y);
+  // aggregate to census age groups
+  vector<Type> population_input_groups(N_pop);
+  population_input_groups = aggregate(population, input_pop_year_index,
+                                      input_pop_age_index, input_pop_sex_index,
+                                      N_pop);
 
 
   ////// model section
@@ -302,14 +333,7 @@ Type popReconstruct(objective_function<Type>* obj) {
   nll -= dnorm(vector<Type>(offset_log_emigration), 0, sigma2_emigration, true).sum();
 
   // LEVEL 1 (model the census counts)
-  for (int s = 0; s < sexes; s++) {
-    for (int y_p = 0; y_p < Y_p; y_p++) {
-      int y = pop_data_years_index(y_p);
-      for (int a = 0; a < A; a++) {
-        nll -= dnorm(input_log_population_data(a, y_p, s), log(population(a, y, s)), sigma2_population, true);
-      }
-    }
-  }
+  nll -= dnorm(input_log_pop_value, log(population_input_groups), sqrt(sigma2_population) * input_pop_weight, true).sum();
 
   return nll;
 }

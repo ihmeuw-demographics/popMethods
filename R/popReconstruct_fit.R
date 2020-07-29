@@ -85,6 +85,16 @@
 #'
 #' @inheritSection demCore::ccmpp Inputs
 #'
+#' @section Data:
+#' population: \[`data.table()`\]\cr
+#'   * year: \[`integer()`\] year of population data.
+#'   * sex: \[`character()`\] either 'female', 'male', or 'both'. If 'sexes'
+#'   `setting` is 'female' can only have 'female' input data.
+#'   * age_start: \[`integer()`\] start of the age group (inclusive).
+#'   Corresponds to 'ages' `setting`. Age groups included must not overlap.
+#'   * age_end: \[`integer()`\] end of the age group (exclusive).
+#'   * `value_col`: \[`numeric()`\] population count, must be greater than zero.
+#'
 #' @section `popReconstruct_fit` Value:
 #' If fit using 'stan' an object of class `stanfit` and if fit using 'tmb' an
 #' object of class `sdreport`. Either represents the fitted results that can be
@@ -213,6 +223,7 @@
 #' @seealso [`demUtils::summarize_dt()`]
 #' @seealso [`rbindlist_dts()`]
 #' @seealso `vignette("popReconstruct")`
+#' @seealso `vignette("popReconstruct_options")`
 #' @family popReconstruct
 #'
 #' @import Rcpp
@@ -251,13 +262,6 @@ popReconstruct_fit <- function(inputs,
 
   # Create input objects for fitting model ----------------------------------
 
-  # determine columns of projected population matrix in Stan that corresponds
-  # to census years
-  index <- 1:length(settings$years_projections)
-  if (software == "tmb") index <- index - 1
-  index_census_years <- index[settings$years_projections %in%
-                                settings$years_census]
-
   # determine number of younger age groups that are not included in the
   # reproductive ages
   A_f_offset = sum(settings$ages < min(settings$ages_asfr))
@@ -271,8 +275,7 @@ popReconstruct_fit <- function(inputs,
     A_f = length(settings$ages_asfr),
     A_f_offset = A_f_offset,
     Y = length(settings$years),
-    Y_p = length(settings$years_census),
-    pop_data_years_index = index_census_years
+    Y_p = length(settings$years_census)
   )
 
   prep_input_array <- function(component, list_dt, detailed_settings) {
@@ -330,13 +333,55 @@ popReconstruct_fit <- function(inputs,
   # prepare data inputs
   for (component in c("population")) {
 
-    # add initial input estimates
-    data_adt <- prep_input_array(component, data, detailed_settings)
-    transformation_name <- detailed_settings[[component]][["transformation_name"]]
-    input_name <- paste0("input_", transformation_name,
-                         if (!is.null(transformation_name)) "_",
-                         component, "_data")
-    input_data[[input_name]] <- data_adt
+    dt <- copy(data[[component]])
+    comp_settings <- detailed_settings[[component]]
+    transformation <- detailed_settings[[component]][["transformation"]]
+
+    # transform value
+    setnames(dt, value_col, "value")
+    if (!is.null(transformation)) {
+      dt[, value := transformation(value)]
+    }
+
+    # get indices for year
+    indices_years_all <- 1:length(settings$years_projections)
+    if (software == "tmb") indices_years_all <- indices_years_all - 1
+    dt[, year_index_start := indices_years_all[unique(year) == settings$years_projections],
+       by = "year"]
+    dt[, year_index_end := year_index_start + 1]
+
+    # get indices for age
+    indices_ages_all <- 1:length(settings$ages)
+    if (software == "tmb") indices_ages_all <- indices_ages_all - 1
+    dt[, age_index_start := indices_ages_all[unique(age_start) == settings$ages],
+       by = "age_start"]
+    dt[, age_index_end := indices_ages_all[unique(age_end) == settings$ages],
+       by = "age_end"]
+    dt[is.infinite(age_end), age_index_end := max(indices_ages_all) + 1]
+
+    # get indices for sex
+    indices_sexes_start <- c("female" = 1, "male" = 2, "both" = 1)
+    indices_sexes_end <- c("female" = 2, "male" = 3, "both" = 3)
+    if (software == "tmb") {
+      indices_sexes_start <- indices_sexes_start - 1
+      indices_sexes_end <- indices_sexes_end - 1
+    }
+    dt[, sex_index_start := indices_sexes_start[sex]]
+    dt[, sex_index_end := indices_sexes_end[sex]]
+
+    # calculate weight (number of most detailed year-age-sex groups included in aggregate)
+    dt[, weight := (year_index_end - year_index_start) *
+         (age_index_end - age_index_start) *
+         (sex_index_end - sex_index_start)]
+    dt[, weight := 1 / weight]
+
+    # add data information
+    input_data[["N_pop"]] <- nrow(dt)
+    input_data[["input_log_pop_value"]] <- dt[["value"]]
+    input_data[["input_pop_weight"]] <- dt[["weight"]]
+    input_data[["input_pop_year_index"]] <- as.matrix(dt[, list(year_index_start, year_index_end)])
+    input_data[["input_pop_age_index"]] <- as.matrix(dt[, list(age_index_start, age_index_end)])
+    input_data[["input_pop_sex_index"]] <- as.matrix(dt[, list(sex_index_start, sex_index_end)])
   }
 
   # prepare initial estimates and parameters for all possible components
@@ -527,8 +572,8 @@ validate_popReconstruct_data <- function(data,
 
   component_ids <- list(
     "population" = list(year = settings$years_projections,
-                             sex = settings$sexes,
-                             age_start = settings$ages)
+                        sex = settings$sexes,
+                        age_start = settings$ages)
   )
   assertthat::assert_that(
     class(data) == "list",

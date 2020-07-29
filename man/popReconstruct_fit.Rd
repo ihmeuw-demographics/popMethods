@@ -145,6 +145,20 @@ without linear B-splines to reduce age-specific parameters.
 }
 }
 
+\section{Data}{
+
+population: [\code{data.table()}]\cr
+\itemize{
+\item year: [\code{integer()}] year of population data.
+\item sex: [\code{character()}] either 'female', 'male', or 'both'. If 'sexes'
+\code{setting} is 'female' can only have 'female' input data.
+\item age_start: [\code{integer()}] start of the age group (inclusive).
+Corresponds to 'ages' \code{setting}. Age groups included must not overlap.
+\item age_end: [\code{integer()}] end of the age group (exclusive).
+\item \code{value_col}: [\code{numeric()}] population count, must be greater than zero.
+}
+}
+
 \section{\code{popReconstruct_fit} Value}{
 
 If fit using 'stan' an object of class \code{stanfit} and if fit using 'tmb' an
@@ -411,6 +425,8 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
 \code{\link[=rbindlist_dts]{rbindlist_dts()}}
 
 \code{vignette("popReconstruct")}
+
+\code{vignette("popReconstruct_options")}
 
 Other popReconstruct: 
 \code{\link{popReconstruct_hyperparameters}()},

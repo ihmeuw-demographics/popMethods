@@ -2,7 +2,7 @@
 title: "popReconstruct Model"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{placeholder}
+  %\VignetteIndexEntry{popReconstruct Model}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -78,7 +78,7 @@ $$\begin{aligned} srb &= \text{sex-ratio at birth} \\ f &= \text{age-specific fe
 
 The popReconstruct model that is included in the `popMethods` package is slightly rewritten but equivalent. This needs to be explained because it impacts how the outputs are named and formatted.
 
-Instead of directly modeling the ccmpp inputs at level 3 we model the offset or deviation from the initial estimates. This allows us to use things like linear splines to reduce the number of parameters in the model which is explained more in the `vignette("popReconstruct_linear_splines", package = "popMethods)`.
+Instead of directly modeling the ccmpp inputs at level 3 we model the offset or deviation from the initial estimates. This allows us to use things like linear splines to reduce the number of parameters in the model which is explained more in the `vignette("popReconstruct_options", package = "popMethods)`.
 
 **Level 3.1** (calculate the estimated ccmpp inputs):
 $$\begin{aligned} \text{log} \ srb_t &= \text{log} \ srb^*_t + \delta_{srb_t} \\ \text{log} \ f_{a,t} &= \text{log} \ f^*_{a,t} + \delta_{f_{a,t}} \\ \text{log} \ n_{l,a,t_0} &= \text{log} \ n^*_{l,a,t_0} + \delta_{n_{l,a,t_0}} \\ \text{logit} \ s_{l,a,t} &= \text{logit} \ s^*_{l,a,t} + \delta_{s_{l,a,t}}  \\ g_{l,a,t} &= g^*_{l,a,t} + \delta_{g_{l,a,t}} \end{aligned}$$

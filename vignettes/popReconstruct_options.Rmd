@@ -1,0 +1,260 @@
+---
+title: "popReconstruct Alternative Model Specifications"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{popReconstruct Alternative Model Specifications}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 30
+)
+```
+
+The purpose of this vignette is to explain the alternative popReconstruct model specifications implemented in this package and how to run `popReconstruct_fit()` with these different specifications.
+These modifications to the original popReconstruct have been developed while implementing the popReconstruct model at scale with varying quality of input data but the modifications have not yet been published.
+
+# Original popReconstruct model
+
+In `vignette("popReconstruct", package = "popMethods")` the original popReconstruct model is explained and written out.
+Please read this first and become familiar with the basics of the `demCore::ccmpp` and `popMethods::popReconstruct_fit` functions.
+
+# Estimate Immigration and Emigration
+
+In the original popReconstruct model, net migration proportion is one of the components estimated.
+`demCore::ccmpp` has been made flexible enough to accept either just net migration or both immigration and emigration as inputs.
+To mirror this flexibility, `popMethods::popReconstruct_fit` can accept either set of migration inputs.
+This allows one to set separate hyperparameters for immigration and emigration inputs when available since immigration is often easier to measure.
+
+Below, the net migration (`g`) inputs and parameters have been replaced by immigration `i` and emigration `e` components.
+
+**Level 1** (likelihood for census counts):
+$$\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)$$
+**Level 2** (map from ccmpp input parameters to projected population counts):
+$$n_{l,a,t} = \text{CCMPP}(srb_t, f_{a,t}, n_{l,a,t_0}, s_{l,a,t}, i_{l,a,t}, e_{l,a,t})$$
+**Level 3.1** (calculate the estimated ccmpp inputs):
+$$\begin{aligned} & \ \ \vdots \\
+\text{log} \ i_{l,a,t} &= \text{log} \ i^*_{l,a,t} + \delta_{i_{l,a,t}} \\
+\text{log} \ e_{l,a,t} &= \text{log} \ e^*_{l,a,t} + \delta_{e_{l,a,t}} \end{aligned}$$
+
+**Level 3.2** (priors for ccmpp input offset parameters):
+$$\begin{aligned} & \ \ \vdots \\
+\delta_{i_{l,a,t}} &\sim \text{Normal}(0, \sigma^2_{i}) \\
+\delta_{e_{l,a,t}} &\sim \text{Normal}(0, \sigma^2_{e})\end{aligned}$$
+
+**Level 4** (informative prior distributions representing measurement error):
+$$\begin{aligned} \sigma^2_{\nu} &\sim \text{InverseGamma}(\alpha^*_{\nu}, \beta^*_{\nu}) \\
+\nu &\in \{{srb, f, n, s, i, e}\} \end{aligned}$$
+
+**where**:
+
+$$\begin{aligned} & \ \ \vdots \\
+i &= \text{immigration proportion} \\
+e &= \text{emigration proportion} \end{aligned}$$
+
+```{r, eval=FALSE}
+# `inputs` and `hyperparameters` must include "immigration" and "emigration"
+# rather than "net_migration".
+popMethods::popReconstruct_fit(
+  inputs = inputs,
+  data = data,
+  hyperparameters = hyperparameters,
+  settings = settings,
+  value_col = "value"
+)
+```
+
+# Aggregate Census Data
+
+`ccmpp` requires that age and year intervals of all inputs are the same and the resulting population projections will have the same intervals.
+When fitting the popReconstruct model with one year age groups this leads to population projections in one year age groups every calendar year but census data is often not available in one year age groups.
+
+Here is how the original popReconstruct model writes out the likelihood for census counts.
+It requires that the projected population ($n_{l,a,t}$) and the census data ($n^{*}_{l,a,t}$) are both for the same sex-age-year groupings.
+
+$$\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)$$
+When data is only available in aggregate age groups or only for both sexes combined one strategy could be to split the data to the more detailed groupings needed for the model.
+
+Another that is implemented in `popMethods::popReconstruct_fit` is to aggregate the detailed estimates $n_{l,a,t}$ so that they match the aggregate groupings available in the data.
+The variance ($\sigma^2_n$) is then weighted by the number of sex-age-year groupings included in the aggregate group.
+So $\sigma^2_n$ actually represents the variance of one single sex-age-year group.
+This is needed to give equal weight to a census where only the total population may be available and a census where single year age groups for each sex is available.
+
+Below, this is written out for one example data point where the both sexes combined, under 5 age group in 1980 is available. The variance $\sigma^2_n$ is divided by 10 because 2 sexes and 5 single year age groups are included in the data point.
+$$\text{log} \ n^{*}_{\text{both},0-5,1980} \sim \text{Normal}(\text{log} \sum_{l=\text{female}}^{\text{male}} \sum_{a=0}^{4} n_{l,a,1980}, \frac{\sigma^2_n}{10})$$
+
+```{r, eval=FALSE}
+# `data$population` data.table always includes "age_start" and "age_end"
+# columns. When fitting a model equivalent to the original popReconstruct model
+# the "age_start" values must include all `settings$ages` values. This model
+# feature now allows aggregate age groups meaning not all `settings$ages` values
+# need to be included. Or 'both' sexes combined can be included in the "sex" column
+# of the data.table.
+popMethods::popReconstruct_fit(
+  inputs = inputs,
+  data = data,
+  hyperparameters = hyperparameters,
+  settings = settings,
+  value_col = "value"
+)
+```
+
+# Linear Splines
+
+For each demographic component of the popReconstruct model (sex ratio at birth, asfr, baseline population, survival proportion and migration) there is a matrix of initial estimates by year, sex, and/or age.
+The original popReconstruct model includes a parameter representing the true value for each element of the matrices which when estimating a model with 1 year age groups and 1 year calendar intervals becomes quiet computationally intensive.
+
+Rather than estimating a single parameter for each element in these matrices we need a way to decompose each matrix into a smaller set of parameters over time and age that can still then expand out into the full matrix to be used in CCMPP to project population estimates for 1 year (or 5 year) of age and calendar year intervals.
+
+## Original Model Rewritten
+
+Before explaining how linear splines might be used to address this it is useful to rewrite the popReconstruct model parameters as deviations from the input estimates rather than actually trying to model the true values.
+
+**Level 1** (likelihood for census counts):
+$$\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)$$
+
+**Level 2** (map from ccmpp input parameters to projected population counts):
+$$n_{l,a,t} = \text{CCMPP}(srb_t, f_{a,t}, n_{l,a,t_0}, s_{l,a,t}, g_{l,a,t})$$
+
+**Level 3.1** (calculate the estimated ccmpp inputs):
+$$\begin{aligned} \text{log} \ srb_t &= \text{log} \ srb^*_t + \delta_{srb_t} \\
+\text{log} \ f_{a,t} &= \text{log} \ f^*_{a,t} + \delta_{f_{a,t}} \\
+\text{log} \ n_{l,a,t_0} &= \text{log} \ n^*_{l,a,t_0} + \delta_{n_{l,a,t_0}} \\
+\text{logit} \ s_{l,a,t} &= \text{logit} \ s^*_{l,a,t} + \delta_{s_{l,a,t}}  \\
+g_{l,a,t} &= g^*_{l,a,t} + \delta_{g_{l,a,t}} \end{aligned}$$
+
+**Level 3.2** (priors for ccmpp input offset parameters):
+$$\begin{aligned} \delta_{srb_t} &\sim \text{Normal}(0, \sigma^2_{srb}) \\
+\delta_{f_{a,t}} &\sim \text{Normal}(0, \sigma^2_{f}) \\
+\delta_{n_{l,a,t_0}} &\sim \text{Normal}(0, \sigma^2_{n}) \\
+\delta_{s_{l,a,t}} &\sim \text{Normal}(0, \sigma^2_{s}) \\
+\delta_{g_{l,a,t}} &\sim \text{Normal}(0, \sigma^2_{g}) \end{aligned}$$
+
+**Level 4** (informative prior distributions representing measurement error):
+$$\begin{aligned} \sigma^2_{\nu} &\sim \text{InverseGamma}(\alpha^*_{\nu}, \beta^*_{\nu}) \\
+\nu &\in \{{srb, f, n, s, g}\} \end{aligned}$$
+
+**where**:
+$$* = \text{input data}$$
+
+$$\begin{aligned} l &= \text{sex} \\  a &= \text{age} \\ y &= \text{year} \end{aligned}$$
+
+$$\begin{aligned} srb &= \text{sex-ratio at birth} \\
+f &= \text{age-specific fertility rate} \\
+n &= \text{population} \\ s &= \text{survivorship ratio} \\
+g &= \text{net migration proportion} \end{aligned}$$
+
+$$\delta = \text{offset or deviation from the initial estimates}$$
+
+## TOPALS and linear splines background
+
+The TOPALS relational method (tool for projecting age patterns using linear splines) (Beer (2012), Schmertmann and Gonzaga (2018)) defines a relationship between a standard age pattern and deviations from the age pattern.
+
+For popReconstruct the initial estimates of the ccmpp inputs (asfr, baseline population, etc.) can act as the standard age and time pattern.
+
+The baseline population is a good starting place to explain this because it only involves age and not time.
+The estimated baseline population $n_{l,a,t_0}$ is equal to the input baseline population $n^*_{l,a,t_0}$ plus the estimated offset or deviation parameters $\delta_{n_{l,a,t_0}}$.
+
+$$\text{log} \ n_{l,a,t_0} = \text{log} \ n^*_{l,a,t_0} + \delta_{n_{l,a,t_0}}$$
+
+To represent deviations from the age pattern, TOPALS uses a piecewise linear function that includes straight line segments between selected ages (knots).
+$\mathbf{B}^{n_{t_0}}_a$ is a matrix of fixed B-spline linear basis functions for the baseline population count.
+This matrix has $a$ rows (number of age groups) and $k_a$ columns (the number of knots for the baseline matrix) while $\delta^{n_{t_0}}_{l,k_a,t_0}$ is a sex-specific parameter matrix with $k_a$ rows and $1$ column representing deviations from the input estimates at specific knots.
+
+$$\text{log} \ n_{l,a,t_0} = \text{log} \ n^*_{l,a,t_0} + \mathbf{B}^{n_{t_0}}_a \delta^{n_{t_0}}_{l,k_a,t_0}$$
+As explained by Schmertmann and Gonzaga (2018), the $\delta^{n_{t_0}}_{l,k_a,t_0}$ parameters are the values of the piecewise function exactly at each knot.
+For example if we have knots at 0, 10, ..., 70, 80 for the baseline year then there are 9 model parameters for the baseline population rather than 17 for the original model with 5-year age groups.
+
+Schmertmann and Gonzaga (2018) calls $\delta^{n_{t_0}}_{l,k_a,t_0}$ the offset parameters and $\mathbf{B}^{n_{t_0}}_a \delta^{n_{t_0}}_{l,k_a,t_0}$ combined are the linear spline offsets.
+
+The estimated baseline population at age 20 is a function of only one element of $\delta^{n_{t_0}}_{l,k_a,t_0}$ because age 20 is one of the knots.
+
+$$\text{log} \ n_{l,20,1960} = \text{log} \ n^*_{l,20,1960} + \frac{1}{1} \delta^{n_{t_0}}_{l,20,1960}$$
+
+For age 25, it is a function of multiple elements of $\delta^{n_{t_0}}_{l,k_a,t_0}$ because it is not one of the knots.
+
+$$\text{log} \ n_{l,25,1960} = \text{log} \ n^*_{l,25,1960} + \frac{1}{2} \delta^{n_{t_0}}_{l,20,1960} + \frac{1}{2} \delta^{n_{t_0}}_{l,30,1960}$$
+You can see the coefficients by examining the $a$ by $k_a$ matrix $\mathbf{B}^{n_{t_0}}_a$ below.
+
+```{r}
+# define the ages included in the inputs
+ages <- seq(0, 80, 5)
+
+# define the knots of the piecewise linear function
+knots <- seq(0, 80, 10)
+
+B_n_a <- splines::bs(
+  ages,
+  knots = knots[-length(knots)], # last age already included as a boundary knot
+  degree = 1 # this specifies a linear spline
+)
+rownames(B_n_a) <- ages
+colnames(B_n_a) <- knots
+B_n_a
+```
+
+This same idea can be applied to reduce year-specific parameters like for sex-ratio at birth.
+
+$$\text{log} \ srb_{t} = \text{log} \ srb^*_{t} + \delta^{srb}_{k_t}{\mathbf{B}^{srb}_t}^\intercal$$
+
+And combined for year and age specific parameters like for asfr, survival and migration.
+
+## popReconstruct with Linear Splines
+
+Level 3 of popReconstruct can be rewritten with the linear splines included. Each of the year specific and age specific knots can be different for each component (srb, asfr, etc.).
+
+**Level 3.1** (calculate the estimated ccmpp inputs):
+$$\begin{aligned} \text{log} \ srb_t &= \text{log} \ srb^*_t + \delta^{srb}_{k_t}{\mathbf{B}^{srb}_t}^\intercal \\
+\text{log} \ f_{a,t} &= \text{log} \ f^*_{a,t} + \mathbf{B}^f_a \delta^f_{k_a,k_t} {\mathbf{B}^{f}_t}^\intercal \\
+\text{log} \ n_{l,a,t_0} &= \text{log} \ n^*_{l,a,t_0} + \mathbf{B}^n_a \delta^{n_{0}}_{l,k_a,t_0} \\
+\text{logit} \ s_{l,a,t} &= \text{logit} \ s^*_{l,a,t} + \mathbf{B}^s_a \delta^s_{k_a,k_t} {\mathbf{B}^{s}_t}^\intercal  \\
+g_{l,a,t} &= g^*_{l,a,t} + \mathbf{g}^f_a \delta^g_{k_a,k_t} {\mathbf{B}^{g}_t}^\intercal \end{aligned}$$
+
+**Level 3.2** (priors for ccmpp input offset parameters):
+$$\begin{aligned} \delta_{srb_{k_t}} &\sim \text{Normal}(0, \sigma^2_{srb}) \\
+\delta_{f_{k_a,k_t}} &\sim \text{Normal}(0, \sigma^2_{f}) \\
+\delta_{n_{l,k_a,t_0}} &\sim \text{Normal}(0, \sigma^2_{n}) \\
+\delta_{s_{l,k_a,k_t}} &\sim \text{Normal}(0, \sigma^2_{s}) \\
+\delta_{g_{l,k_a,k_t}} &\sim \text{Normal}(0, \sigma^2_{g}) \end{aligned}$$
+
+**where**:
+$$\begin{aligned} k_a &= \text{age-specific knots} \\
+k_t &= \text{year-specific knots} \\
+\delta_{\nu} &= \text{offset parameters} \\
+\mathbf{B}^{\nu}_a &= \text{fixed B-spline linear basis functions for age} \\
+\mathbf{B}^{\nu}_t &= \text{fixed B-spline linear basis functions for time} \\
+\mathbf{B}^{\nu}\delta_{\nu} &= \text{linear spline offsets} \end{aligned}$$
+
+This model specification can:
+
+* reduce computation time since there are fewer parameters to be estimated.
+
+* smooth deviations from the initial input estimates.
+
+* reduce back to the original model if a knot is included at every single age and year of the inputs.
+
+```{r, eval=FALSE}
+# To use this feature use the optional additional settings variables as
+# described in the "Optional popReconstruct Settings" of the documentation for
+# `popReconstruct_fit`.
+
+# Here is an example of how to use year and age specific knots for the survival component
+optional_settings <- list(
+  years = seq(1950, 2020, 1),
+  ages = seq(0, 95, 1),
+  k_years_survival = seq(1950, 2020, 5),
+  k_ages_survival = c(0, 1, 5, 15, 60, 95),
+  ...
+)
+```
+
+# References
+
+Beer, Joop de. 2012. “Smoothing and projecting age-specific probabilities of death by TOPALS.” Demographic Research 27: 543–92. [doi:10.4054/DemRes.2012.27.20](https://doi.org/10.4054/DemRes.2012.27.20).
+
+Schmertmann, Carl P., and Marcos R. Gonzaga. 2018. “Bayesian Estimation of Age-Specific Mortality and Life Expectancy for Small Areas With Defective Vital Records.” Demography 55 (4). Springer New York LLC: 1363–88. [doi:10.1007/s13524-018-0695-2](https://doi.org/10.1007/s13524-018-0695-2).
