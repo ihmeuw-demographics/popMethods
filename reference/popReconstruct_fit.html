@@ -111,6 +111,9 @@ tmb." />
     <li>
       <a href="../articles/popReconstruct.html">popReconstruct Model</a>
     </li>
+    <li>
+      <a href="../articles/popReconstruct_options.html">popReconstruct Alternative Model Specifications</a>
+    </li>
   </ul>
 </li>
       </ul>
@@ -240,7 +243,7 @@ Statistical modeling software to fit popReconstruct with. Either 'stan' or
     <tr>
       <th>...</th>
       <td><p>For <code>popReconstruct_fit()</code> additional arguments to pass to
-<code><a href='https://rdrr.io/pkg/rstan/man/stanmodel-method-sampling.html'>rstan::sampling()</a></code> if fitting the model with 'stan' or
+<code><a href='https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html'>rstan::sampling()</a></code> if fitting the model with 'stan' or
 <code><a href='https://rdrr.io/pkg/optimx/man/optimx.html'>optimx::optimx()</a></code> if fitting the model with 'tmb'. For
 <code>popReconstruct_summarize_draws()</code> additional arguments to pass to
 <code><a href='https://rdrr.io/pkg/demUtils/man/summarize_dt.html'>demUtils::summarize_dt()</a></code>.</p></td>
@@ -287,7 +290,7 @@ to 'srb'.</p></li>
 <li><p>n_draws: [<code><a href='https://rdrr.io/r/base/character.html'>character()</a></code>]<br />
 The number of draws to take from the output posterior distribution. If
 fitting the model with stan then the number of draws is dictated by
-<code>chains</code>, <code>iterations</code>, <code>burn-in</code>, <code>thin</code> arguments to <code><a href='https://rdrr.io/pkg/rstan/man/stanmodel-method-sampling.html'>rstan::sampling</a></code>;
+<code>chains</code>, <code>iterations</code>, <code>burn-in</code>, <code>thin</code> arguments to <code><a href='https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html'>rstan::sampling</a></code>;
 <code>n_draws</code> can then be used to subsample down.</p></li>
 <li><p>k_years_input_name: [<code><a href='https://rdrr.io/r/base/integer.html'>integer()</a></code>]<br />
 The start of each calendar year interval that will be knots in the
@@ -301,6 +304,20 @@ linear basis functions for the age-specific input estimates, so not
 relevant for 'srb'. Defaults to the setting for 'ages' (or
 'ages_input_name') which is equal to the original popReconstruct model
 without linear B-splines to reduce age-specific parameters.</p></li>
+</ul>
+
+    <h2 class="hasAnchor" id="data"><a class="anchor" href="#data"></a>Data</h2>
+
+    
+
+<p>population: [<code>data.table()</code>]<br /></p><ul>
+<li><p>year: [<code><a href='https://rdrr.io/r/base/integer.html'>integer()</a></code>] year of population data.</p></li>
+<li><p>sex: [<code><a href='https://rdrr.io/r/base/character.html'>character()</a></code>] either 'female', 'male', or 'both'. If 'sexes'
+<code>setting</code> is 'female' can only have 'female' input data.</p></li>
+<li><p>age_start: [<code><a href='https://rdrr.io/r/base/integer.html'>integer()</a></code>] start of the age group (inclusive).
+Corresponds to 'ages' <code>setting</code>. Age groups included must not overlap.</p></li>
+<li><p>age_end: [<code><a href='https://rdrr.io/r/base/integer.html'>integer()</a></code>] end of the age group (exclusive).</p></li>
+<li><p><code>value_col</code>: [<code><a href='https://rdrr.io/r/base/numeric.html'>numeric()</a></code>] population count, must be greater than zero.</p></li>
 </ul>
 
     <h2 class="hasAnchor" id="popreconstruct-fit-value"><a class="anchor" href="#popreconstruct-fit-value"></a><code>popReconstruct_fit</code> Value</h2>
@@ -508,11 +525,12 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
 
     <div class='dont-index'><p><code><a href='https://rdrr.io/pkg/demCore/man/ccmpp.html'>demCore::ccmpp()</a></code></p>
 <p><code><a href='https://rdrr.io/pkg/demUtils/man/summarize_dt.html'>demUtils::summarize_dt()</a></code></p>
-<p><code>rbindlist_dts()</code></p>
-<p><code>vignette("popReconstruct")</code></p>
+<p><code><a href='rbindlist_dts.html'>rbindlist_dts()</a></code></p>
+<p><code><a href='../articles/popReconstruct.html'>vignette("popReconstruct")</a></code></p>
+<p><code><a href='../articles/popReconstruct_options.html'>vignette("popReconstruct_options")</a></code></p>
 <p>Other popReconstruct: 
-<code>popReconstruct_hyperparameters()</code>,
-<code>rbindlist_dts()</code></p></div>
+<code><a href='popReconstruct_hyperparameters.html'>popReconstruct_hyperparameters</a>()</code>,
+<code><a href='rbindlist_dts.html'>rbindlist_dts</a>()</code></p></div>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='co'># specify settings for this example</span>
@@ -532,7 +550,7 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
                         survival = <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(alpha = <span class='fl'>1</span>, beta = <span class='fl'>0.0109</span>),
                         net_migration = <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(alpha = <span class='fl'>1</span>, beta = <span class='fl'>0.0436</span>))
 
-<span class='kw'>fit_stan</span> <span class='op'>&lt;-</span> <span class='kw'>popMethods</span>::<span class='fu'><a href='https://rdrr.io/pkg/popMethods/man/popReconstruct_fit.html'>popReconstruct_fit</a></span>(
+<span class='kw'>fit_stan</span> <span class='op'>&lt;-</span> <span class='kw'>popMethods</span>::<span class='fu'>popReconstruct_fit</span>(
   inputs = <span class='kw'>demCore</span>::<span class='kw'><a href='https://rdrr.io/pkg/demCore/man/burkina_faso.html'>burkina_faso_initial_estimates</a></span>,
   data = <span class='kw'>demCore</span>::<span class='kw'><a href='https://rdrr.io/pkg/demCore/man/burkina_faso.html'>burkina_faso_data</a></span>,
   hyperparameters = <span class='kw'>hyperparameters</span>,
@@ -546,8 +564,8 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
 )</div><div class='output co'>#&gt; 
 #&gt; SAMPLING FOR MODEL 'popReconstruct' NOW (CHAIN 1).
 #&gt; Chain 1: 
-#&gt; Chain 1: Gradient evaluation took 0.000289 seconds
-#&gt; Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 2.89 seconds.
+#&gt; Chain 1: Gradient evaluation took 0.000438 seconds
+#&gt; Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 4.38 seconds.
 #&gt; Chain 1: Adjust your expectations accordingly!
 #&gt; Chain 1: 
 #&gt; Chain 1: 
@@ -572,9 +590,9 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
 #&gt; Chain 1: Iteration: 180 / 200 [ 90%]  (Sampling)
 #&gt; Chain 1: Iteration: 200 / 200 [100%]  (Sampling)
 #&gt; Chain 1: 
-#&gt; Chain 1:  Elapsed Time: 1.90067 seconds (Warm-up)
-#&gt; Chain 1:                1.22073 seconds (Sampling)
-#&gt; Chain 1:                3.1214 seconds (Total)
+#&gt; Chain 1:  Elapsed Time: 1.74622 seconds (Warm-up)
+#&gt; Chain 1:                0.998407 seconds (Sampling)
+#&gt; Chain 1:                2.74462 seconds (Total)
 #&gt; Chain 1: </div><div class='output co'>#&gt; <span class='warning'>Warning: The largest R-hat is NA, indicating chains have not mixed.</span>
 #&gt; <span class='warning'>Running the chains for more iterations may help. See</span>
 #&gt; <span class='warning'>http://mc-stan.org/misc/warnings.html#r-hat</span></div><div class='output co'>#&gt; <span class='warning'>Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>
@@ -582,7 +600,7 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
 #&gt; <span class='warning'>http://mc-stan.org/misc/warnings.html#bulk-ess</span></div><div class='output co'>#&gt; <span class='warning'>Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span>
 #&gt; <span class='warning'>Running the chains for more iterations may help. See</span>
 #&gt; <span class='warning'>http://mc-stan.org/misc/warnings.html#tail-ess</span></div><div class='input'>
-<span class='kw'>draws_stan</span> <span class='op'>&lt;-</span> <span class='kw'>popMethods</span>::<span class='fu'><a href='https://rdrr.io/pkg/popMethods/man/popReconstruct_fit.html'>popReconstruct_posterior_draws</a></span>(
+<span class='kw'>draws_stan</span> <span class='op'>&lt;-</span> <span class='kw'>popMethods</span>::<span class='fu'>popReconstruct_posterior_draws</span>(
   fit = <span class='kw'>fit_stan</span>,
   inputs = <span class='kw'>demCore</span>::<span class='kw'><a href='https://rdrr.io/pkg/demCore/man/burkina_faso.html'>burkina_faso_initial_estimates</a></span>,
   settings = <span class='kw'>settings</span>,
@@ -591,7 +609,7 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
   method_name = <span class='st'>"original"</span>
 )
 
-<span class='kw'>summary_stan</span> <span class='op'>&lt;-</span> <span class='kw'>popMethods</span>::<span class='fu'><a href='https://rdrr.io/pkg/popMethods/man/popReconstruct_fit.html'>popReconstruct_summarize_draws</a></span>(
+<span class='kw'>summary_stan</span> <span class='op'>&lt;-</span> <span class='kw'>popMethods</span>::<span class='fu'>popReconstruct_summarize_draws</span>(
   draws = <span class='kw'>draws_stan</span>
 )
 </div></pre>

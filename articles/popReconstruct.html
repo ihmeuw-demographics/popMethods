@@ -56,6 +56,9 @@
 <li>
       <a href="../articles/popReconstruct.html">popReconstruct Model</a>
     </li>
+    <li>
+      <a href="../articles/popReconstruct_options.html">popReconstruct Alternative Model Specifications</a>
+    </li>
   </ul>
 </li>
       </ul>
@@ -131,7 +134,7 @@
 <h2 class="hasAnchor">
 <a href="#original-popreconstruct-model-with-level-3-rewritten" class="anchor"></a>Original popReconstruct model with level 3 rewritten</h2>
 <p>The popReconstruct model that is included in the <code>popMethods</code> package is slightly rewritten but equivalent. This needs to be explained because it impacts how the outputs are named and formatted.</p>
-<p>Instead of directly modeling the ccmpp inputs at level 3 we model the offset or deviation from the initial estimates. This allows us to use things like linear splines to reduce the number of parameters in the model which is explained more in the <code>vignette("popReconstruct_linear_splines", package = "popMethods)</code>.</p>
+<p>Instead of directly modeling the ccmpp inputs at level 3 we model the offset or deviation from the initial estimates. This allows us to use things like linear splines to reduce the number of parameters in the model which is explained more in the <code>vignette("popReconstruct_options", package = "popMethods)</code>.</p>
 <p><strong>Level 3.1</strong> (calculate the estimated ccmpp inputs): <span class="math display">\[\begin{aligned} \text{log} \ srb_t &amp;= \text{log} \ srb^*_t + \delta_{srb_t} \\ \text{log} \ f_{a,t} &amp;= \text{log} \ f^*_{a,t} + \delta_{f_{a,t}} \\ \text{log} \ n_{l,a,t_0} &amp;= \text{log} \ n^*_{l,a,t_0} + \delta_{n_{l,a,t_0}} \\ \text{logit} \ s_{l,a,t} &amp;= \text{logit} \ s^*_{l,a,t} + \delta_{s_{l,a,t}}  \\ g_{l,a,t} &amp;= g^*_{l,a,t} + \delta_{g_{l,a,t}} \end{aligned}\]</span></p>
 <p><strong>Level 3.2</strong> (priors for ccmpp input offset parameters): <span class="math display">\[\begin{aligned} \delta_{srb_t} &amp;\sim \text{Normal}(0, \sigma^2_{srb}) \\ \delta_{f_{a,t}} &amp;\sim \text{Normal}(0, \sigma^2_{f}) \\  \delta_{n_{l,a,t_0}} &amp;\sim \text{Normal}(0, \sigma^2_{n}) \\ \delta_{s_{l,a,t}} &amp;\sim \text{Normal}(0, \sigma^2_{s}) \\ \delta_{g_{l,a,t}} &amp;\sim \text{Normal}(0, \sigma^2_{g}) \end{aligned}\]</span></p>
 <p><strong>where</strong>: <span class="math display">\[\begin{aligned} \delta_{\nu} &amp;= \text{offset or deviation from the initial estimates} \\ \nu &amp;\in \{{srb, f, n, s, g}\} \end{aligned}\]</span></p>
@@ -328,15 +331,15 @@
 )
 <span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="kw">fit_stan_summary</span><span class="op">$</span><span class="kw">summary</span>)
 <span class="co">#&gt;                                mean      se_mean           sd          10%</span>
-<span class="co">#&gt; sigma2_asfr[1]          0.010627086 7.882400e-04 0.0082551219 0.0034707760</span>
-<span class="co">#&gt; sigma2_population       0.001304787 1.687933e-05 0.0003789351 0.0008718597</span>
-<span class="co">#&gt; sigma2_survival[1]      0.014162378 1.446516e-03 0.0094675891 0.0044005551</span>
-<span class="co">#&gt; sigma2_net_migration[1] 0.006534777 1.101004e-04 0.0016139674 0.0046413236</span>
-<span class="co">#&gt;                                 90%     n_eff      Rhat</span>
-<span class="co">#&gt; sigma2_asfr[1]          0.021267537 109.68067 1.0021244</span>
-<span class="co">#&gt; sigma2_population       0.001773543 503.98676 0.9992325</span>
-<span class="co">#&gt; sigma2_survival[1]      0.025468484  42.83831 1.0319712</span>
-<span class="co">#&gt; sigma2_net_migration[1] 0.008658062 214.88759 1.0091627</span>
+<span class="co">#&gt; sigma2_asfr[1]          0.010820643 1.159739e-03 0.0091133067 0.0035661733</span>
+<span class="co">#&gt; sigma2_population       0.001336889 1.757041e-05 0.0003965118 0.0008973893</span>
+<span class="co">#&gt; sigma2_survival[1]      0.013487797 1.654570e-03 0.0111726104 0.0034548608</span>
+<span class="co">#&gt; sigma2_net_migration[1] 0.006670692 1.119505e-04 0.0017052445 0.0047603695</span>
+<span class="co">#&gt;                                 90%     n_eff     Rhat</span>
+<span class="co">#&gt; sigma2_asfr[1]          0.021424364  61.74919 1.043858</span>
+<span class="co">#&gt; sigma2_population       0.001852912 509.27016 1.002124</span>
+<span class="co">#&gt; sigma2_survival[1]      0.026720876  45.59728 1.043625</span>
+<span class="co">#&gt; sigma2_net_migration[1] 0.008920094 232.01760 1.004554</span>
 </pre></div>
 <p>The <a href="https://mc-stan.org/users/interfaces/shinystan">shinystan R package</a> is also useful for being able to quickly look at useful diagnostics for all parameters.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit">
