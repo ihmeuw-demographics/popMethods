@@ -70,7 +70,7 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
       setting_value <- settings[[setting_name]]
       assertthat::assert_that(
         assertive::is_numeric(setting_value),
-        setting_value %in% settings$years,
+        all(setting_value %in% settings$years),
         msg = paste0("setting '", setting_name, "' must be a numeric ",
                      "corresponding to the start of calendar year intervals ",
                      "as specified in the setting 'years'")
@@ -95,7 +95,7 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
 
       assertthat::assert_that(
         assertive::is_numeric(setting_value),
-        setting_value %in% settings$expected_ages,
+        all(setting_value %in% expected_ages),
         msg = paste0("setting '", setting_name, "' must be a numeric ",
                      "corresponding to the start of age-group intervals ",
                      "as specified in the setting 'ages' or ",
