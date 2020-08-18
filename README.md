@@ -20,4 +20,10 @@ remotes::install_github("ihmeuw-demographics/popMethods", dependencies = TRUE)
 
 ## Getting help
 
-If you encounter a clear bug, please file a minimal reproducible example on [github](https://github.com/ihmeuw-demographics/popMethods/issues).
+popMethods function documentation and vignettes can be found at [https://ihmeuw-demographics.github.io/popMethods/index.html](https://ihmeuw-demographics.github.io/popMethods/index.html)
+
+If you encounter a clear bug, missing documentation, or a feature you'd like to see implemented please file an issue on [github](https://github.com/ihmeuw-demographics/popMethods/issues) with the information requested in the issue template.
+
+## Contributing
+
+See the [contributing guidelines](https://github.com/ihmeuw-demographics/.github/blob/master/contributing.md) for more information.
