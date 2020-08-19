@@ -146,58 +146,49 @@
 <div id="setup" class="section level2">
 <h2 class="hasAnchor">
 <a href="#setup" class="anchor"></a>Setup</h2>
-<div class="sourceCode" id="cb1"><pre class="downlit">
-<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="kw"><a href="https://github.com/ihmeuw-demographics/popMethods">popMethods</a></span>)
-<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="kw"><a href="http://r-datatable.com">data.table</a></span>)
-<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="kw"><a href="http://ggplot2.tidyverse.org">ggplot2</a></span>)
-<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="kw"><a href="https://mc-stan.org/bayesplot">bayesplot</a></span>)
+<div class="sourceCode" id="cb1"><html><body><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">popMethods</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">data.table</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">ggplot2</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">bayesplot</span>)
 
-<span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span>(<span class="fl">3</span>)
-</pre></div>
+<span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span>(<span class="fl">3</span>)</pre></body></html></div>
 <p>In order to fit the popReconstruct model using <code><a href="../reference/popReconstruct_fit.html">popMethods::popReconstruct_fit</a></code> we need a list of the settings for the inputs and ccmpp projections. The required settings are the same as <code><a href="https://rdrr.io/pkg/demCore/man/ccmpp.html">demCore::ccmpp</a></code> but there are additional optional settings for <code><a href="../reference/popReconstruct_fit.html">popMethods::popReconstruct_fit</a></code>. The only optional setting we will specify for this example is the number of draws (<code>n_draws</code>) to sample from the prior distribution and the posterior distribution when we fit the model with TMB.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit">
-<span class="co"># specify settings for this example</span>
-<span class="kw">settings</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(
+<div class="sourceCode" id="cb2"><html><body><pre class="r"><span class="co"># specify settings for this example</span>
+<span class="no">settings</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(
   <span class="co"># settings required for `demCore::ccmpp` or `popMethods::popReconstruct_fit`</span>
-  years = <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">1960</span>, <span class="fl">2000</span>, <span class="fl">5</span>),
-  sexes = <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"female"</span>),
-  ages = <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">0</span>, <span class="fl">80</span>, <span class="fl">5</span>),
-  ages_survival = <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">0</span>, <span class="fl">85</span>, <span class="fl">5</span>),
-  ages_asfr = <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">15</span>, <span class="fl">45</span>, <span class="fl">5</span>),
-  
+  <span class="kw">years</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">1960</span>, <span class="fl">2000</span>, <span class="fl">5</span>),
+  <span class="kw">sexes</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"female"</span>),
+  <span class="kw">ages</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">0</span>, <span class="fl">80</span>, <span class="fl">5</span>),
+  <span class="kw">ages_survival</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">0</span>, <span class="fl">85</span>, <span class="fl">5</span>),
+  <span class="kw">ages_asfr</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">15</span>, <span class="fl">45</span>, <span class="fl">5</span>),
+
   <span class="co"># optional settings for `popMethods::popReconstruct_fit`</span>
-  n_draws = <span class="fl">200</span>
-)
-</pre></div>
+  <span class="kw">n_draws</span> <span class="kw">=</span> <span class="fl">200</span>
+)</pre></body></html></div>
 <p>As mentioned above the popReconstruct model incorporates prior knowledge on the measurement error of ccmpp inputs and population data. These hyperparameters can be backcalculated using <code><a href="../reference/popReconstruct_hyperparameters.html">popMethods::popReconstruct_hyperparameters</a></code> or manually specified as done here to replicate the original popReconstruct paper (Wheldon et al (2013)).</p>
-<div class="sourceCode" id="cb3"><pre class="downlit">
-<span class="kw">hyperparameters</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(asfr = <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(alpha = <span class="fl">1</span>, beta = <span class="fl">0.0109</span>),
-                        population = <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(alpha = <span class="fl">1</span>, beta = <span class="fl">0.0109</span>),
-                        survival = <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(alpha = <span class="fl">1</span>, beta = <span class="fl">0.0109</span>),
-                        net_migration = <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(alpha = <span class="fl">1</span>, beta = <span class="fl">0.0436</span>))
-</pre></div>
+<div class="sourceCode" id="cb3"><html><body><pre class="r"><span class="no">hyperparameters</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="kw">asfr</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">beta</span> <span class="kw">=</span> <span class="fl">0.0109</span>),
+                        <span class="kw">population</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">beta</span> <span class="kw">=</span> <span class="fl">0.0109</span>),
+                        <span class="kw">survival</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">beta</span> <span class="kw">=</span> <span class="fl">0.0109</span>),
+                        <span class="kw">net_migration</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">beta</span> <span class="kw">=</span> <span class="fl">0.0436</span>))</pre></body></html></div>
 </div>
 <div id="sample-from-the-prior-distribution-for-the-popreconstruct-model" class="section level2">
 <h2 class="hasAnchor">
 <a href="#sample-from-the-prior-distribution-for-the-popreconstruct-model" class="anchor"></a>Sample from the prior distribution for the popReconstruct model</h2>
 <p>Now we can sample from the prior distribution using <code><a href="../reference/popReconstruct_fit.html">popMethods::popReconstruct_prior_draws</a></code>.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit">
-<span class="kw">draws_prior</span> <span class="op">&lt;-</span> <span class="kw">popMethods</span>::<span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_prior_draws</a></span>(
-  inputs = <span class="kw">demCore</span>::<span class="kw"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
-  hyperparameters = <span class="kw">hyperparameters</span>,
-  settings = <span class="kw">settings</span>,
-  value_col = <span class="st">"value"</span>,
-  method_name = <span class="st">"Prior"</span>
+<div class="sourceCode" id="cb4"><html><body><pre class="r"><span class="no">draws_prior</span> <span class="kw">&lt;-</span> <span class="kw pkg">popMethods</span><span class="kw ns">::</span><span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_prior_draws</a></span>(
+  <span class="kw">inputs</span> <span class="kw">=</span> <span class="kw pkg">demCore</span><span class="kw ns">::</span><span class="no"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
+  <span class="kw">hyperparameters</span> <span class="kw">=</span> <span class="no">hyperparameters</span>,
+  <span class="kw">settings</span> <span class="kw">=</span> <span class="no">settings</span>,
+  <span class="kw">value_col</span> <span class="kw">=</span> <span class="st">"value"</span>,
+  <span class="kw">method_name</span> <span class="kw">=</span> <span class="st">"Prior"</span>
 )
 
-<span class="kw">summary_prior</span> <span class="op">&lt;-</span> <span class="kw">popMethods</span>::<span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_summarize_draws</a></span>(
-  draws = <span class="kw">draws_prior</span>,
-  summarize_cols = <span class="st">"draw"</span>
-)
-</pre></div>
+<span class="no">summary_prior</span> <span class="kw">&lt;-</span> <span class="kw pkg">popMethods</span><span class="kw ns">::</span><span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_summarize_draws</a></span>(
+  <span class="kw">draws</span> <span class="kw">=</span> <span class="no">draws_prior</span>,
+  <span class="kw">summarize_cols</span> <span class="kw">=</span> <span class="st">"draw"</span>
+)</pre></body></html></div>
 <p>Both <code>draws_prior</code> and <code>summary_prior</code> return a list of data.tables for different components of the model. There are data.tables for each of the ccmpp inputs (baseline, srb, asfr, survival, net_migration), the projected population, and the variance parameters for each ccmmp input and population. Additionally there are data.tables for the <code>offset_</code> parameters for each ccmpp input which is what is actually estimated in the popReconstruct model. When fitting the original model the <code>spline_offset_</code> parameters are exactly equal to the <code>offset_</code> parameters and we are going to ignore them for now, these are explained in the <code>vignette("popReconstruct_linear_splines", package = "popMethods)</code>.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit">
-<span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span>(<span class="kw">summary_prior</span>)
+<div class="sourceCode" id="cb5"><html><body><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span>(<span class="no">summary_prior</span>)
 <span class="co">#&gt;                             Length Class      Mode</span>
 <span class="co">#&gt; variance                    5      data.table list</span>
 <span class="co">#&gt; population                  8      data.table list</span>
@@ -216,7 +207,7 @@
 <span class="co">#&gt; baseline                    8      data.table list</span>
 <span class="co">#&gt; survival                    9      data.table list</span>
 <span class="co">#&gt; net_migration               9      data.table list</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="kw">summary_prior</span><span class="op">$</span><span class="kw">population</span>)
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="no">summary_prior</span>$<span class="no">population</span>)
 <span class="co">#&gt;    year    sex age_start age_end method     mean     q2.5    q97.5</span>
 <span class="co">#&gt; 1: 1960 female         0       5  Prior 397002.7 289187.6 597694.2</span>
 <span class="co">#&gt; 2: 1960 female         5      10  Prior 295751.7 207282.4 408782.3</span>
@@ -224,45 +215,42 @@
 <span class="co">#&gt; 4: 1960 female        15      20  Prior 249847.0 183158.9 344482.4</span>
 <span class="co">#&gt; 5: 1960 female        20      25  Prior 207609.3 139700.2 286674.9</span>
 <span class="co">#&gt; 6: 1960 female        25      30  Prior 177078.1 124639.0 233196.8</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="kw">draws_prior</span><span class="op">$</span><span class="kw">population</span>)
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="no">draws_prior</span>$<span class="no">population</span>)
 <span class="co">#&gt;    year    sex age_start age_end    value draw method</span>
 <span class="co">#&gt; 1: 1960 female         0       5 404054.1    1  Prior</span>
 <span class="co">#&gt; 2: 1960 female         0       5 431341.4    2  Prior</span>
 <span class="co">#&gt; 3: 1960 female         0       5 389268.3    3  Prior</span>
 <span class="co">#&gt; 4: 1960 female         0       5 219547.8    4  Prior</span>
 <span class="co">#&gt; 5: 1960 female         0       5 329019.6    5  Prior</span>
-<span class="co">#&gt; 6: 1960 female         0       5 493664.2    6  Prior</span>
-</pre></div>
+<span class="co">#&gt; 6: 1960 female         0       5 493664.2    6  Prior</span></pre></body></html></div>
 </div>
 <div id="fit-the-popreconstruct-model-with-stan" class="section level2">
 <h2 class="hasAnchor">
 <a href="#fit-the-popreconstruct-model-with-stan" class="anchor"></a>Fit the popReconstruct model with Stan</h2>
 <p><a href="https://mc-stan.org/">Stan</a> is a C++ program that does Bayesian statistical inference. It requires a model written in the Stan language that calculates the log posterior likelihood. The program can be compiled and then run from R, Python, or some other languages. By default it uses the no-U-turn MCMC sampler which is a variant of Hamiltonian Monte Carlo and the Metropolis Hastings algorithm. One of the nice things about Stan is that there is a large community of users with a well documented code base, manual and lots of examples.</p>
 <p>Below the model is fit in Stan using <code><a href="../reference/popReconstruct_fit.html">popMethods::popReconstruct_fit</a></code> with the same inputs, hyperparameters and settings as for sampling from the prior. The <code>chains</code>, <code>warmup</code>, <code>iter</code>, and <code>seed</code> arguments are specific to fitting the model in stan and if we were actually using the results we’d want to run for more iterations/warmup with more chains.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit">
-<span class="kw">fit_stan</span> <span class="op">&lt;-</span> <span class="kw">popMethods</span>::<span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_fit</a></span>(
-  inputs = <span class="kw">demCore</span>::<span class="kw"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
-  data = <span class="kw">demCore</span>::<span class="kw"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_data</a></span>,
-  hyperparameters = <span class="kw">hyperparameters</span>,
-  settings = <span class="kw">settings</span>,
-  value_col = <span class="st">"value"</span>,
-  software = <span class="st">"stan"</span>,
-  chains = <span class="fl">2</span>, warmup = <span class="fl">1000</span>, iter = <span class="fl">2000</span>, seed = <span class="fl">3</span>
+<div class="sourceCode" id="cb6"><html><body><pre class="r"><span class="no">fit_stan</span> <span class="kw">&lt;-</span> <span class="kw pkg">popMethods</span><span class="kw ns">::</span><span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_fit</a></span>(
+  <span class="kw">inputs</span> <span class="kw">=</span> <span class="kw pkg">demCore</span><span class="kw ns">::</span><span class="no"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
+  <span class="kw">data</span> <span class="kw">=</span> <span class="kw pkg">demCore</span><span class="kw ns">::</span><span class="no"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_data</a></span>,
+  <span class="kw">hyperparameters</span> <span class="kw">=</span> <span class="no">hyperparameters</span>,
+  <span class="kw">settings</span> <span class="kw">=</span> <span class="no">settings</span>,
+  <span class="kw">value_col</span> <span class="kw">=</span> <span class="st">"value"</span>,
+  <span class="kw">software</span> <span class="kw">=</span> <span class="st">"stan"</span>,
+  <span class="kw">chains</span> <span class="kw">=</span> <span class="fl">2</span>, <span class="kw">warmup</span> <span class="kw">=</span> <span class="fl">1000</span>, <span class="kw">iter</span> <span class="kw">=</span> <span class="fl">2000</span>, <span class="kw">seed</span> <span class="kw">=</span> <span class="fl">3</span>
 )
 
-<span class="kw">draws_stan</span> <span class="op">&lt;-</span> <span class="kw">popMethods</span>::<span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_posterior_draws</a></span>(
-  fit = <span class="kw">fit_stan</span>,
-  inputs = <span class="kw">demCore</span>::<span class="kw"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
-  settings = <span class="kw">settings</span>,
-  value_col = <span class="st">"value"</span>,
-  software = <span class="st">"stan"</span>,
-  method_name = <span class="st">"Stan"</span>
+<span class="no">draws_stan</span> <span class="kw">&lt;-</span> <span class="kw pkg">popMethods</span><span class="kw ns">::</span><span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_posterior_draws</a></span>(
+  <span class="kw">fit</span> <span class="kw">=</span> <span class="no">fit_stan</span>,
+  <span class="kw">inputs</span> <span class="kw">=</span> <span class="kw pkg">demCore</span><span class="kw ns">::</span><span class="no"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
+  <span class="kw">settings</span> <span class="kw">=</span> <span class="no">settings</span>,
+  <span class="kw">value_col</span> <span class="kw">=</span> <span class="st">"value"</span>,
+  <span class="kw">software</span> <span class="kw">=</span> <span class="st">"stan"</span>,
+  <span class="kw">method_name</span> <span class="kw">=</span> <span class="st">"Stan"</span>
 )
 
-<span class="kw">summary_stan</span> <span class="op">&lt;-</span> <span class="kw">popMethods</span>::<span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_summarize_draws</a></span>(
-  draws = <span class="kw">draws_stan</span>
-)
-</pre></div>
+<span class="no">summary_stan</span> <span class="kw">&lt;-</span> <span class="kw pkg">popMethods</span><span class="kw ns">::</span><span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_summarize_draws</a></span>(
+  <span class="kw">draws</span> <span class="kw">=</span> <span class="no">draws_stan</span>
+)</pre></body></html></div>
 <p>The outputs <code>draws_stan</code> and <code>summary_stan</code> are formatted exactly the same as the corresponding prior distribution outputs.</p>
 <p>One of the cool features of fitting the model in stan is that we can then use a bunch of the built in diagnostics and accessory packages. This is explained more at the end of this vignette.</p>
 </div>
@@ -271,43 +259,39 @@
 <a href="#fit-the-popreconstruct-model-with-tmb" class="anchor"></a>Fit the popReconstruct model with TMB</h2>
 <p><a href="https://kaskr.github.io/adcomp/Introduction.html">TMB</a> is another statistical modeling software written in C++. Similar to Stan, the model is written in TMB/C++ to calculate the log posterior likelihood. The program is then compiled and given to R optimizers like <code><a href="https://rdrr.io/r/stats/nlminb.html">nlminb()</a></code>.</p>
 <p>TMB can be really fast because it uses the laplace approximation to integrate random effects whereas as MCMC integrates all parameters. Sometimes the laplace approximation is not accurate and its application to this model needs to be tested more rigorously. Whereas Stan provides a way to specify bounds for transformed parameters (in the popReconstruct model we need to constrain projected populations to be greater than or equal to zero), TMB does not. The constraint can only be applied when producing draws from the posterior distribution.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit">
-<span class="kw">fit_tmb</span> <span class="op">&lt;-</span> <span class="kw">popMethods</span>::<span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_fit</a></span>(
-  inputs = <span class="kw">demCore</span>::<span class="kw"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
-  data = <span class="kw">demCore</span>::<span class="kw"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_data</a></span>,
-  hyperparameters = <span class="kw">hyperparameters</span>,
-  settings = <span class="kw">settings</span>,
-  value_col = <span class="st">"value"</span>,
-  software = <span class="st">"tmb"</span>
+<div class="sourceCode" id="cb7"><html><body><pre class="r"><span class="no">fit_tmb</span> <span class="kw">&lt;-</span> <span class="kw pkg">popMethods</span><span class="kw ns">::</span><span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_fit</a></span>(
+  <span class="kw">inputs</span> <span class="kw">=</span> <span class="kw pkg">demCore</span><span class="kw ns">::</span><span class="no"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
+  <span class="kw">data</span> <span class="kw">=</span> <span class="kw pkg">demCore</span><span class="kw ns">::</span><span class="no"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_data</a></span>,
+  <span class="kw">hyperparameters</span> <span class="kw">=</span> <span class="no">hyperparameters</span>,
+  <span class="kw">settings</span> <span class="kw">=</span> <span class="no">settings</span>,
+  <span class="kw">value_col</span> <span class="kw">=</span> <span class="st">"value"</span>,
+  <span class="kw">software</span> <span class="kw">=</span> <span class="st">"tmb"</span>
 )
 
-<span class="kw">draws_tmb</span> <span class="op">&lt;-</span> <span class="kw">popMethods</span>::<span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_posterior_draws</a></span>(
-  fit = <span class="kw">fit_tmb</span>,
-  inputs = <span class="kw">demCore</span>::<span class="kw"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
-  settings = <span class="kw">settings</span>,
-  value_col = <span class="st">"value"</span>,
-  software = <span class="st">"tmb"</span>,
-  method_name = <span class="st">"TMB"</span>
+<span class="no">draws_tmb</span> <span class="kw">&lt;-</span> <span class="kw pkg">popMethods</span><span class="kw ns">::</span><span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_posterior_draws</a></span>(
+  <span class="kw">fit</span> <span class="kw">=</span> <span class="no">fit_tmb</span>,
+  <span class="kw">inputs</span> <span class="kw">=</span> <span class="kw pkg">demCore</span><span class="kw ns">::</span><span class="no"><a href="https://rdrr.io/pkg/demCore/man/burkina_faso.html">burkina_faso_initial_estimates</a></span>,
+  <span class="kw">settings</span> <span class="kw">=</span> <span class="no">settings</span>,
+  <span class="kw">value_col</span> <span class="kw">=</span> <span class="st">"value"</span>,
+  <span class="kw">software</span> <span class="kw">=</span> <span class="st">"tmb"</span>,
+  <span class="kw">method_name</span> <span class="kw">=</span> <span class="st">"TMB"</span>
 )
 
-<span class="kw">summary_tmb</span> <span class="op">&lt;-</span> <span class="kw">popMethods</span>::<span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_summarize_draws</a></span>(
-  draws = <span class="kw">draws_tmb</span>,
-  summarize_cols = <span class="st">"draw"</span>
-)
-</pre></div>
+<span class="no">summary_tmb</span> <span class="kw">&lt;-</span> <span class="kw pkg">popMethods</span><span class="kw ns">::</span><span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_summarize_draws</a></span>(
+  <span class="kw">draws</span> <span class="kw">=</span> <span class="no">draws_tmb</span>,
+  <span class="kw">summarize_cols</span> <span class="kw">=</span> <span class="st">"draw"</span>
+)</pre></body></html></div>
 </div>
 </div>
 <div id="plotting-and-comparing-the-results" class="section level1">
 <h1 class="hasAnchor">
 <a href="#plotting-and-comparing-the-results" class="anchor"></a>Plotting and comparing the results</h1>
 <p>Now we have three sets of draws and summary statistics of the prior/posterior distribution using different statistical modeling software. <code><a href="../reference/rbindlist_dts.html">popMethods::rbindlist_dts</a></code> is a useful function to combine the three lists of data.tables into just one list of data.tables which can then be used for comparison plots.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit">
-<span class="kw">summary_combined</span> <span class="op">&lt;-</span> <span class="kw">popMethods</span>::<span class="fu"><a href="../reference/rbindlist_dts.html">rbindlist_dts</a></span>(
-  <span class="kw">summary_prior</span>, 
-  <span class="kw">summary_stan</span>, 
-  <span class="kw">summary_tmb</span>
-)
-</pre></div>
+<div class="sourceCode" id="cb8"><html><body><pre class="r"><span class="no">summary_combined</span> <span class="kw">&lt;-</span> <span class="kw pkg">popMethods</span><span class="kw ns">::</span><span class="fu"><a href="../reference/rbindlist_dts.html">rbindlist_dts</a></span>(
+  <span class="no">summary_prior</span>,
+  <span class="no">summary_stan</span>,
+  <span class="no">summary_tmb</span>
+)</pre></body></html></div>
 <p>Theoretically the Stan and TMB models should be exploring the same posterior distribution and give similar results especially as we take more and more samples from the posterior distribution. In this example vignette we are using a reduced number of iterations and samples to reduce the runtime.</p>
 <p>The following series of diagnostic plots for each component of the model include a line for the mean and the shaded areas go from the 2.5 to 97.5 percentiles.</p>
 <p><img src="popReconstruct_files/figure-html/population_time_series-1.png" width="768"></p>
@@ -322,14 +306,13 @@
 <a href="#additional-stan-diagnostics" class="anchor"></a>Additional Stan Diagnostics</h1>
 <p>By fitting the popReconstruct model with Stan we can take advantage of many of the diagnostics built into the <code>rstan</code> package and other related packages like <code>shinystan</code> and <code>bayesplot</code>.</p>
 <p>When printing out the model fit object you can get information about Rhat and the effective sample size. Stan has a nice <a href="https://mc-stan.org/misc/warnings.html">page</a> explaining some common warnings and diagnostics that people can run into. “Rhat” for example tests whether the MCMC chains have mixed well by comparing the between and within chain estimates.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit">
-<span class="kw">fit_stan_summary</span> <span class="op">&lt;-</span> <span class="kw">rstan</span>::<span class="fu">summary</span>(
-  <span class="kw">fit_stan</span>, 
-  pars = <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"sigma2_srb"</span>, <span class="st">"sigma2_asfr"</span>, <span class="st">"sigma2_population"</span>, <span class="st">"sigma2_survival"</span>, 
-           <span class="st">"sigma2_net_migration"</span>), 
-  probs = <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0.1</span>, <span class="fl">0.9</span>)
+<div class="sourceCode" id="cb9"><html><body><pre class="r"><span class="no">fit_stan_summary</span> <span class="kw">&lt;-</span> <span class="kw pkg">rstan</span><span class="kw ns">::</span><span class="fu">summary</span>(
+  <span class="no">fit_stan</span>,
+  <span class="kw">pars</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"sigma2_srb"</span>, <span class="st">"sigma2_asfr"</span>, <span class="st">"sigma2_population"</span>, <span class="st">"sigma2_survival"</span>,
+           <span class="st">"sigma2_net_migration"</span>),
+  <span class="kw">probs</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0.1</span>, <span class="fl">0.9</span>)
 )
-<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="kw">fit_stan_summary</span><span class="op">$</span><span class="kw">summary</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="no">fit_stan_summary</span>$<span class="no">summary</span>)
 <span class="co">#&gt;                                mean      se_mean           sd          10%</span>
 <span class="co">#&gt; sigma2_asfr[1]          0.010820643 1.159739e-03 0.0091133067 0.0035661733</span>
 <span class="co">#&gt; sigma2_population       0.001336889 1.757041e-05 0.0003965118 0.0008973893</span>
@@ -339,33 +322,26 @@
 <span class="co">#&gt; sigma2_asfr[1]          0.021424364  61.74919 1.043858</span>
 <span class="co">#&gt; sigma2_population       0.001852912 509.27016 1.002124</span>
 <span class="co">#&gt; sigma2_survival[1]      0.026720876  45.59728 1.043625</span>
-<span class="co">#&gt; sigma2_net_migration[1] 0.008920094 232.01760 1.004554</span>
-</pre></div>
+<span class="co">#&gt; sigma2_net_migration[1] 0.008920094 232.01760 1.004554</span></pre></body></html></div>
 <p>The <a href="https://mc-stan.org/users/interfaces/shinystan">shinystan R package</a> is also useful for being able to quickly look at useful diagnostics for all parameters.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit">
-<span class="kw">shinystan</span>::<span class="fu">launch_shinystan</span>(<span class="kw">fit_stan</span>)
-</pre></div>
+<div class="sourceCode" id="cb10"><html><body><pre class="r"><span class="kw pkg">shinystan</span><span class="kw ns">::</span><span class="fu">launch_shinystan</span>(<span class="no">fit_stan</span>)</pre></body></html></div>
 <p>The <a href="https://mc-stan.org/bayesplot/index.html">bayesplot R package</a> provides many plotting functions that can be used on MCMC objects from different statistical modeling packages. They return ggplot objects which means they can easily be extended upon too.</p>
 <p>The following pairs plot shows univariate histograms and bivariate scatter plots for the variance parameters in the popReconstruct model. This plot is useful for identifying possible collinearity between parameters or multiplicative non-identifiabilities as explained <a href="https://mc-stan.org/bayesplot/articles/visual-mcmc-diagnostics.html">here</a></p>
-<div class="sourceCode" id="cb11"><pre class="downlit">
-<span class="kw">posterior</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html">as.array</a></span>(<span class="kw">fit_stan</span>)
-<span class="kw">np</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html">data.table</a></span>(<span class="kw">bayesplot</span>::<span class="fu"><a href="https://mc-stan.org/bayesplot/reference/bayesplot-extractors.html">nuts_params</a></span>(<span class="kw">fit_stan</span>))
-<span class="kw">bayesplot</span>::<span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-scatterplots.html">mcmc_pairs</a></span>(
-  <span class="kw">posterior</span>, 
-  np = <span class="kw">np</span>, 
-  pars = <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"sigma2_asfr[1]"</span>, <span class="st">"sigma2_population"</span>,  <span class="st">"sigma2_survival[1]"</span>, 
+<div class="sourceCode" id="cb11"><html><body><pre class="r"><span class="no">posterior</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html">as.array</a></span>(<span class="no">fit_stan</span>)
+<span class="no">np</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html">data.table</a></span>(<span class="kw pkg">bayesplot</span><span class="kw ns">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/bayesplot-extractors.html">nuts_params</a></span>(<span class="no">fit_stan</span>))
+<span class="kw pkg">bayesplot</span><span class="kw ns">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-scatterplots.html">mcmc_pairs</a></span>(
+  <span class="no">posterior</span>,
+  <span class="kw">np</span> <span class="kw">=</span> <span class="no">np</span>,
+  <span class="kw">pars</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"sigma2_asfr[1]"</span>, <span class="st">"sigma2_population"</span>,  <span class="st">"sigma2_survival[1]"</span>,
            <span class="st">"sigma2_net_migration[1]"</span>, <span class="st">"lp__"</span>)
-)
-</pre></div>
+)</pre></body></html></div>
 <p><img src="popReconstruct_files/figure-html/pairs_plot-1.png" width="768"></p>
 <p>Another useful diagnostic is a trace plot which shows each chain as it changes for each iteration. The variance parameters for population and net_migration are nice examples of good mixing where the different chains are exploring the same parameter space. The trace plots for the variance parameters for asfr and survival indicate poor mixing which may be due to the few number of iterations used when fitting the model for this vignette.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit">
-<span class="kw">bayesplot</span>::<span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-traces.html">mcmc_trace</a></span>(
-  <span class="kw">posterior</span>, 
-  regex_pars = <span class="st">"sigma2"</span>, 
-  np = <span class="kw">np</span>) <span class="op">+</span>
-<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span>(<span class="st">"Post-warmup iteration"</span>)
-</pre></div>
+<div class="sourceCode" id="cb12"><html><body><pre class="r"><span class="kw pkg">bayesplot</span><span class="kw ns">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-traces.html">mcmc_trace</a></span>(
+  <span class="no">posterior</span>,
+  <span class="kw">regex_pars</span> <span class="kw">=</span> <span class="st">"sigma2"</span>,
+  <span class="kw">np</span> <span class="kw">=</span> <span class="no">np</span>) +
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span>(<span class="st">"Post-warmup iteration"</span>)</pre></body></html></div>
 <p><img src="popReconstruct_files/figure-html/trace-1.png" width="768"></p>
 </div>
 <div id="references" class="section level1">
@@ -393,7 +369,7 @@
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.9000.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.</p>
 </div>
 
       </footer>
