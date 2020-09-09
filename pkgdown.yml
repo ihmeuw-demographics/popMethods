@@ -1,8 +1,6 @@
 pandoc: 2.7.3
-pkgdown: 1.5.1
+pkgdown: 1.6.0
 pkgdown_sha: ~
-articles:
-  popReconstruct: popReconstruct.html
-  popReconstruct_options: popReconstruct_options.html
-last_built: 2020-08-19T00:05Z
+articles: []
+last_built: 2020-09-09T19:45Z
 

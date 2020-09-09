@@ -6,8 +6,8 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Helper function for rbinding each [<code>data.table()</code>] nested within a
-[<code>list()</code>] — rbindlist_dts • popMethods</title>
+<title>Helper function for rbinding each [data.table()] nested within a
+[list()] — rbindlist_dts • popMethods</title>
 
 
 <!-- jquery -->
@@ -40,8 +40,8 @@
 
 
 
-<meta property="og:title" content="Helper function for rbinding each [<code>data.table()</code>] nested within a
-[<code>list()</code>] — rbindlist_dts" />
+<meta property="og:title" content="Helper function for rbinding each [data.table()] nested within a
+[list()] — rbindlist_dts" />
 <meta property="og:description" content="Inputs multiple lists of data.tables that will be combined
 into one list of data.tables. data.tables are matched by the name of each
 element of each list. This is different than data.table::rbindlist()
@@ -141,7 +141,7 @@ element of each list. This is different than <code><a href='https://Rdatatable.g
 which inputs one list of data.tables and returns one combined data.table.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>rbindlist_dts</span>(<span class='no'>...</span>)</pre>
+    <pre class="usage"><span class='fu'>rbindlist_dts</span>(<span class='kw'>...</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -164,31 +164,33 @@ as returned by <code><a href='popReconstruct_fit.html'>popReconstruct_posterior_
 <code><a href='popReconstruct_hyperparameters.html'>popReconstruct_hyperparameters</a>()</code></p></div>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='no'>list_dt1</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(
-  <span class='st'>"population"</span> <span class='kw'>=</span> <span class='kw pkg'>data.table</span><span class='kw ns'>::</span><span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span>(
-    <span class='kw'>sex</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"female"</span>, <span class='st'>"male"</span>),
-    <span class='kw'>value</span> <span class='kw'>=</span> <span class='fl'>2</span>,
-    <span class='kw'>method</span> <span class='kw'>=</span> <span class='fl'>1</span>
+    <pre class="examples"><div class='input'><span class='kw'>list_dt1</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(
+  <span class='st'>"population"</span> = <span class='kw'>data.table</span>::<span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span>(
+    sex = <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"female"</span>, <span class='st'>"male"</span>),
+    value = <span class='fl'>2</span>,
+    method = <span class='fl'>1</span>
 ),
-  <span class='st'>"deaths"</span> <span class='kw'>=</span> <span class='kw pkg'>data.table</span><span class='kw ns'>::</span><span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span>(
-    <span class='kw'>sex</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"female"</span>, <span class='st'>"male"</span>),
-    <span class='kw'>value</span> <span class='kw'>=</span> <span class='fl'>4</span>,
-    <span class='kw'>method</span> <span class='kw'>=</span> <span class='fl'>1</span>
+  <span class='st'>"deaths"</span> = <span class='kw'>data.table</span>::<span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span>(
+    sex = <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"female"</span>, <span class='st'>"male"</span>),
+    value = <span class='fl'>4</span>,
+    method = <span class='fl'>1</span>
   )
 )
-<span class='no'>list_dt2</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(
-  <span class='st'>"population"</span> <span class='kw'>=</span> <span class='kw pkg'>data.table</span><span class='kw ns'>::</span><span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span>(
-    <span class='kw'>sex</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"female"</span>, <span class='st'>"male"</span>),
-    <span class='kw'>value</span> <span class='kw'>=</span> <span class='fl'>2</span>,
-    <span class='kw'>method</span> <span class='kw'>=</span> <span class='fl'>2</span>
+<span class='kw'>list_dt2</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(
+  <span class='st'>"population"</span> = <span class='kw'>data.table</span>::<span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span>(
+    sex = <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"female"</span>, <span class='st'>"male"</span>),
+    value = <span class='fl'>2</span>,
+    method = <span class='fl'>2</span>
   ),
-  <span class='st'>"deaths"</span> <span class='kw'>=</span> <span class='kw pkg'>data.table</span><span class='kw ns'>::</span><span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span>(
-    <span class='kw'>sex</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"female"</span>, <span class='st'>"male"</span>),
-    <span class='kw'>value</span> <span class='kw'>=</span> <span class='fl'>4</span>,
-    <span class='kw'>method</span> <span class='kw'>=</span> <span class='fl'>2</span>
+  <span class='st'>"deaths"</span> = <span class='kw'>data.table</span>::<span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span>(
+    sex = <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"female"</span>, <span class='st'>"male"</span>),
+    value = <span class='fl'>4</span>,
+    method = <span class='fl'>2</span>
   )
 )
-<span class='no'>combined_list_dt</span> <span class='kw'>&lt;-</span> <span class='fu'>rbindlist_dts</span>(<span class='no'>list_dt1</span>, <span class='no'>list_dt2</span>)</div></pre>
+<span class='kw'>combined_list_dt</span> <span class='op'>&lt;-</span> <span class='fu'>rbindlist_dts</span>(<span class='kw'>list_dt1</span>, <span class='kw'>list_dt2</span>)
+
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
@@ -204,7 +206,7 @@ as returned by <code><a href='popReconstruct_fit.html'>popReconstruct_posterior_
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.0.</p>
 </div>
 
       </footer>
