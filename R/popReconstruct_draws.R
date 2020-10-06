@@ -46,7 +46,7 @@ popReconstruct_posterior_draws <- function(fit,
       class(fit) == "sdreport",
       msg = "'fit' object is not a tmb object"
     )
-    draws <- extract_tmb_draws(fit, inputs, settings, detailed_settings)
+    draws <- extract_tmb_draws(fit, inputs, value_col, settings, detailed_settings)
   }
 
   # add method column
@@ -247,7 +247,7 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
 #' @inheritParams extract_stan_draws
 #'
 #' @seealso [`popReconstruct_posterior_draws()`]
-extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
+extract_tmb_draws <- function(fit, inputs, value_col, settings, detailed_settings) {
 
   # Generate draws for random and fixed parameters --------------------------
 
@@ -298,12 +298,19 @@ extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
     # get component specific draws
     measure_type <- comp_detailed_settings[["measure_type"]]
     id_cols <- comp_detailed_settings[["id_cols"]]
-    years <- comp_detailed_settings[["years_knots"]]
-    if (is.null(years)) comp_detailed_settings[["years"]]
+    if (grepl("^offset", param) & comp != "baseline") {
+      years <- comp_detailed_settings[["years_knots"]]
+    } else {
+      years <- comp_detailed_settings[["years"]]
+    }
     years_projections <- settings[["years_projections"]]
     int <- settings[["int"]]
     sexes <- comp_detailed_settings[["sexes"]]
-    ages <- comp_detailed_settings[["ages_knots"]]
+    if (grepl("^offset", param)) {
+      ages <- comp_detailed_settings[["ages_knots"]]
+    } else {
+      ages <- comp_detailed_settings[["ages"]]
+    }
 
     # subset to just the draws for this specific parameter
     component_draws <- as.data.table(random_draws[param == names(random_mean),])

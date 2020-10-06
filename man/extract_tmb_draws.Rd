@@ -4,7 +4,7 @@
 \alias{extract_tmb_draws}
 \title{Extract draws from the popReconstruct model TMB fit}
 \usage{
-extract_tmb_draws(fit, inputs, settings, detailed_settings)
+extract_tmb_draws(fit, inputs, value_col, settings, detailed_settings)
 }
 \arguments{
 \item{fit}{[\code{stanfit(1)}] or [\code{sdreport(1)}]\cr
