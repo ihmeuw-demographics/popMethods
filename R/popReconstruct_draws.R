@@ -87,11 +87,19 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
     # get component specific draws
     measure_type <- comp_detailed_settings[["measure_type"]]
     id_cols <- comp_detailed_settings[["id_cols"]]
-    years <- comp_detailed_settings[["years"]]
+    if (grepl("^offset", param) & comp != "baseline") {
+      years <- comp_detailed_settings[["years_knots"]]
+    } else {
+      years <- comp_detailed_settings[["years"]]
+    }
     years_projections <- settings[["years_projections"]]
     int <- settings[["int"]]
     sexes <- comp_detailed_settings[["sexes"]]
-    ages <- comp_detailed_settings[["ages"]]
+    if (grepl("^offset", param)) {
+      ages <- comp_detailed_settings[["ages_knots"]]
+    } else {
+      ages <- comp_detailed_settings[["ages"]]
+    }
 
     # subset to just the draws for this specific parameter
     component_draws <- draws[grepl(paste0("^", param), parameter)]
@@ -103,9 +111,31 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
       component_draws[, c(if (grepl("^offset", param) | param %in% c("immigration", "emigration")) "estimate",
                           if (!is.null(sexes)) "sex_index", "age_index", "year_index") :=
                         data.table::tstrsplit(parameter, split = ",")]
-      component_draws[, year_start := as.integer(years[as.integer(year_index)])]
-      if (!is.null(sexes)) component_draws[, sex := sexes[as.integer(sex_index)]]
-      if (!is.null(ages)) component_draws[, age_start := as.integer(ages[as.integer(age_index)])]
+      assertthat::assert_that(
+        assertthat::are_equal(
+          length(unique(component_draws$year_index)),
+          length(years)
+        )
+      )
+      component_draws[, year_start := years[as.integer(year_index)]]
+      if (!is.null(sexes)) {
+        assertthat::assert_that(
+          assertthat::are_equal(
+            length(unique(component_draws$sex_index)),
+            length(sexes)
+          )
+        )
+        component_draws[, sex := sexes[as.integer(sex_index)]]
+      }
+      if (!is.null(ages)) {
+        assertthat::assert_that(
+          assertthat::are_equal(
+            length(unique(component_draws$age_index)),
+            length(ages)
+          )
+        )
+        component_draws[, age_start := ages[as.integer(age_index)]]
+      }
 
     } else {
       # create draws of zeroes for offset parameters that were fixed
@@ -268,11 +298,12 @@ extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
     # get component specific draws
     measure_type <- comp_detailed_settings[["measure_type"]]
     id_cols <- comp_detailed_settings[["id_cols"]]
-    years <- comp_detailed_settings[["years"]]
+    years <- comp_detailed_settings[["years_knots"]]
+    if (is.null(years)) comp_detailed_settings[["years"]]
     years_projections <- settings[["years_projections"]]
     int <- settings[["int"]]
     sexes <- comp_detailed_settings[["sexes"]]
-    ages <- comp_detailed_settings[["ages"]]
+    ages <- comp_detailed_settings[["ages_knots"]]
 
     # subset to just the draws for this specific parameter
     component_draws <- as.data.table(random_draws[param == names(random_mean),])
