@@ -80,7 +80,7 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
     return(temp)
   })
   draws <- rbindlist(draws)
-  draws[, draw := ((chain - 1) * max(chain_draw)) + chain_draw]
+  draws[, draw := as.integer(((chain - 1) * max(chain_draw)) + chain_draw)]
 
   format_draws <- function(comp, param, settings, comp_detailed_settings) {
 
