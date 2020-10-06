@@ -360,7 +360,8 @@ extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
   ccmpp_input_draws <- calculate_ccmpp_input_draws(
     spline_offset_draws,
     inputs,
-    detailed_settings
+    detailed_settings,
+    value_col
   )
 
   # project population using ccmpp at draw level
@@ -520,7 +521,8 @@ popReconstruct_prior_draws <- function(inputs,
     ccmpp_input_draws <- calculate_ccmpp_input_draws(
       spline_offset_draws,
       inputs,
-      detailed_settings
+      detailed_settings,
+      value_col
     )
 
     # project population using ccmpp at draw level
@@ -743,7 +745,8 @@ predict_spline_offset <- function(dt, B_t = NULL, B_a = NULL,
 #'   inputs.
 calculate_ccmpp_input_draws <- function(spline_offset_draws,
                                         inputs,
-                                        detailed_settings) {
+                                        detailed_settings,
+                                        value_col) {
 
   ccmpp_input_draws <- lapply(names(spline_offset_draws), function(comp) {
     transformation <- detailed_settings[[comp]][["transformation"]]
@@ -753,7 +756,7 @@ calculate_ccmpp_input_draws <- function(spline_offset_draws,
     setnames(spline_offset, "value", "spline_offset")
 
     input <- copy(inputs[[comp]])
-    setnames(input, "value", "initial")
+    data.table::setnames(input, value_col, "initial")
     if (!is.null(transformation)) input[, initial := transformation(initial)]
 
     input_draws <- merge(
