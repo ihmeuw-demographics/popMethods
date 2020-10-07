@@ -244,6 +244,7 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
 
 #' @title Extract draws from the popReconstruct model TMB fit
 #'
+#' @inheritParams popReconstruct_posterior_draws
 #' @inheritParams extract_stan_draws
 #'
 #' @seealso [`popReconstruct_posterior_draws()`]
