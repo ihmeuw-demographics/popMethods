@@ -24,9 +24,9 @@ CCMPP takes as input initial estimates of the baseline population, mortality, fe
 
 Wheldon et al (2013) introduced a new model they called "popReconstruct" that embeds CCMPP in a Bayesian hierarchical model. popReconstruct reconciles the CCMPP input preliminary estimates of fertility, mortality, migration, and a baseline population with subsequent population data while accounting for measurement error in these initial estimates. 
 
-The code for this model has previously been included in the [popReconstruct R package](https://cran.r-project.org/web/packages/popReconstruct/), and includes a detailed vignette that walks through the example in the paper to estimate the Burkina Faso female population between 1960 and 2005. The authors should be commended for publishing an R package with their work, which makes it much easier to expand off of and use.
+The code for this model has previously been included in the [popReconstruct R package](https://cran.r-project.org/package=popReconstruct), and includes a detailed vignette that walks through the example in the paper to estimate the Burkina Faso female population between 1960 and 2005. The authors should be commended for publishing an R package with their work, which makes it much easier to expand off of and use.
 
-There are some limitations though of the currently available [popReconstruct R package](https://cran.r-project.org/web/packages/popReconstruct/):
+There are some limitations though of the currently available [popReconstruct R package](https://cran.r-project.org/package=popReconstruct):
 
 1) The Metropolis Hastings MCMC sampler is coded in R which is much slower than other languages or software. According to the package vignette, the Burkina Faso example took over 24 hours to run to completion.
 
