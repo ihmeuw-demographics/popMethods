@@ -36,8 +36,8 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
       msg = "setting 'fixed_parameters' must correspond to given `inputs`"
     )
   } else {
-    settings$fixed_parameters <- ifelse(identical(settings$sexes, "female"),
-                                        "srb", "")
+    settings$fixed_parameters <- NULL
+    if (identical(settings$sexes, "female")) settings$fixed_parameters <- "srb"
   }
 
   # add model components that are not being estimated

@@ -46,7 +46,7 @@ popReconstruct_posterior_draws <- function(fit,
       class(fit) == "sdreport",
       msg = "'fit' object is not a tmb object"
     )
-    draws <- extract_tmb_draws(fit, inputs, settings, detailed_settings)
+    draws <- extract_tmb_draws(fit, inputs, value_col, settings, detailed_settings)
   }
 
   # add method column
@@ -80,18 +80,26 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
     return(temp)
   })
   draws <- rbindlist(draws)
-  draws[, draw := ((chain - 1) * max(chain_draw)) + chain_draw]
+  draws[, draw := as.integer(((chain - 1) * max(chain_draw)) + chain_draw)]
 
   format_draws <- function(comp, param, settings, comp_detailed_settings) {
 
     # get component specific draws
     measure_type <- comp_detailed_settings[["measure_type"]]
     id_cols <- comp_detailed_settings[["id_cols"]]
-    years <- comp_detailed_settings[["years"]]
+    if (grepl("^offset", param) & comp != "baseline") {
+      years <- comp_detailed_settings[["years_knots"]]
+    } else {
+      years <- comp_detailed_settings[["years"]]
+    }
     years_projections <- settings[["years_projections"]]
     int <- settings[["int"]]
     sexes <- comp_detailed_settings[["sexes"]]
-    ages <- comp_detailed_settings[["ages"]]
+    if (grepl("^offset", param)) {
+      ages <- comp_detailed_settings[["ages_knots"]]
+    } else {
+      ages <- comp_detailed_settings[["ages"]]
+    }
 
     # subset to just the draws for this specific parameter
     component_draws <- draws[grepl(paste0("^", param), parameter)]
@@ -103,9 +111,31 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
       component_draws[, c(if (grepl("^offset", param) | param %in% c("immigration", "emigration")) "estimate",
                           if (!is.null(sexes)) "sex_index", "age_index", "year_index") :=
                         data.table::tstrsplit(parameter, split = ",")]
-      component_draws[, year_start := as.integer(years[as.integer(year_index)])]
-      if (!is.null(sexes)) component_draws[, sex := sexes[as.integer(sex_index)]]
-      if (!is.null(ages)) component_draws[, age_start := as.integer(ages[as.integer(age_index)])]
+      assertthat::assert_that(
+        assertthat::are_equal(
+          length(unique(component_draws$year_index)),
+          length(years)
+        )
+      )
+      component_draws[, year_start := years[as.integer(year_index)]]
+      if (!is.null(sexes)) {
+        assertthat::assert_that(
+          assertthat::are_equal(
+            length(unique(component_draws$sex_index)),
+            length(sexes)
+          )
+        )
+        component_draws[, sex := sexes[as.integer(sex_index)]]
+      }
+      if (!is.null(ages)) {
+        assertthat::assert_that(
+          assertthat::are_equal(
+            length(unique(component_draws$age_index)),
+            length(ages)
+          )
+        )
+        component_draws[, age_start := ages[as.integer(age_index)]]
+      }
 
     } else {
       # create draws of zeroes for offset parameters that were fixed
@@ -214,10 +244,11 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
 
 #' @title Extract draws from the popReconstruct model TMB fit
 #'
+#' @inheritParams popReconstruct_posterior_draws
 #' @inheritParams extract_stan_draws
 #'
 #' @seealso [`popReconstruct_posterior_draws()`]
-extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
+extract_tmb_draws <- function(fit, inputs, value_col, settings, detailed_settings) {
 
   # Generate draws for random and fixed parameters --------------------------
 
@@ -268,11 +299,19 @@ extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
     # get component specific draws
     measure_type <- comp_detailed_settings[["measure_type"]]
     id_cols <- comp_detailed_settings[["id_cols"]]
-    years <- comp_detailed_settings[["years"]]
+    if (grepl("^offset", param) & comp != "baseline") {
+      years <- comp_detailed_settings[["years_knots"]]
+    } else {
+      years <- comp_detailed_settings[["years"]]
+    }
     years_projections <- settings[["years_projections"]]
     int <- settings[["int"]]
     sexes <- comp_detailed_settings[["sexes"]]
-    ages <- comp_detailed_settings[["ages"]]
+    if (grepl("^offset", param)) {
+      ages <- comp_detailed_settings[["ages_knots"]]
+    } else {
+      ages <- comp_detailed_settings[["ages"]]
+    }
 
     # subset to just the draws for this specific parameter
     component_draws <- as.data.table(random_draws[param == names(random_mean),])
@@ -360,7 +399,8 @@ extract_tmb_draws <- function(fit, inputs, settings, detailed_settings) {
   ccmpp_input_draws <- calculate_ccmpp_input_draws(
     spline_offset_draws,
     inputs,
-    detailed_settings
+    detailed_settings,
+    value_col
   )
 
   # project population using ccmpp at draw level
@@ -520,7 +560,8 @@ popReconstruct_prior_draws <- function(inputs,
     ccmpp_input_draws <- calculate_ccmpp_input_draws(
       spline_offset_draws,
       inputs,
-      detailed_settings
+      detailed_settings,
+      value_col
     )
 
     # project population using ccmpp at draw level
@@ -743,7 +784,8 @@ predict_spline_offset <- function(dt, B_t = NULL, B_a = NULL,
 #'   inputs.
 calculate_ccmpp_input_draws <- function(spline_offset_draws,
                                         inputs,
-                                        detailed_settings) {
+                                        detailed_settings,
+                                        value_col) {
 
   ccmpp_input_draws <- lapply(names(spline_offset_draws), function(comp) {
     transformation <- detailed_settings[[comp]][["transformation"]]
@@ -753,7 +795,7 @@ calculate_ccmpp_input_draws <- function(spline_offset_draws,
     setnames(spline_offset, "value", "spline_offset")
 
     input <- copy(inputs[[comp]])
-    setnames(input, "value", "initial")
+    data.table::setnames(input, value_col, "initial")
     if (!is.null(transformation)) input[, initial := transformation(initial)]
 
     input_draws <- merge(

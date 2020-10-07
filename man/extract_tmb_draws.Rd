@@ -4,7 +4,7 @@
 \alias{extract_tmb_draws}
 \title{Extract draws from the popReconstruct model TMB fit}
 \usage{
-extract_tmb_draws(fit, inputs, settings, detailed_settings)
+extract_tmb_draws(fit, inputs, value_col, settings, detailed_settings)
 }
 \arguments{
 \item{fit}{[\code{stanfit(1)}] or [\code{sdreport(1)}]\cr
@@ -15,6 +15,10 @@ Model fit object returned by \code{\link[=popReconstruct_fit]{popReconstruct_fit
 and 'survival'; and migration estimates provided as just 'net_migration' or
 both 'immigration' and 'emigration'. See \strong{Section: Inputs} for more
 information on each of the required inputs.}
+
+\item{value_col}{[\code{character(1)}]\cr
+Name of the column containing the value of interest in each of the
+\code{inputs}. Default is 'value'.}
 
 \item{settings}{[\code{list()}]\cr
 Named list of settings for running the popReconstruct model with. The

@@ -5,7 +5,12 @@
 \title{Helper function to predict ccmpp inputs estimates from spline offsets
 and initial estimates.}
 \usage{
-calculate_ccmpp_input_draws(spline_offset_draws, inputs, detailed_settings)
+calculate_ccmpp_input_draws(
+  spline_offset_draws,
+  inputs,
+  detailed_settings,
+  value_col
+)
 }
 \arguments{
 \item{spline_offset_draws}{[\code{list()}] of [\code{data.table()}]\cr
@@ -19,6 +24,10 @@ information on each of the required inputs.}
 
 \item{detailed_settings}{[\code{list()}]\cr
 Detailed settings for each ccmpp input and 'population'.}
+
+\item{value_col}{[\code{character(1)}]\cr
+Name of the column containing the value of interest in each of the
+\code{inputs}. Default is 'value'.}
 }
 \value{
 [\code{list()}] of [\code{data.table()}] containing draws of all ccmpp
