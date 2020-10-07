@@ -132,7 +132,7 @@
     <p>Extract draws from the popReconstruct model TMB fit</p>
     </div>
 
-    <pre class="usage"><span class='fu'>extract_tmb_draws</span>(<span class='kw'>fit</span>, <span class='kw'>inputs</span>, <span class='kw'>settings</span>, <span class='kw'>detailed_settings</span>)</pre>
+    <pre class="usage"><span class='fu'>extract_tmb_draws</span><span class='op'>(</span><span class='va'>fit</span>, <span class='va'>inputs</span>, <span class='va'>value_col</span>, <span class='va'>settings</span>, <span class='va'>detailed_settings</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -149,6 +149,12 @@ Model fit object returned by <code><a href='popReconstruct_fit.html'>popReconstr
 and 'survival'; and migration estimates provided as just 'net_migration' or
 both 'immigration' and 'emigration'. See <strong>Section: Inputs</strong> for more
 information on each of the required inputs.</p></td>
+    </tr>
+    <tr>
+      <th>value_col</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/character.html'>character(1)</a></code>]<br />
+Name of the column containing the value of interest in each of the
+<code>inputs</code>. Default is 'value'.</p></td>
     </tr>
     <tr>
       <th>settings</th>
@@ -185,7 +191,7 @@ Detailed settings for each ccmpp input and 'population'.</p></td>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
 </div>
 
       </footer>
