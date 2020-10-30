@@ -79,7 +79,8 @@
 
       
 
-      </header><script src="popReconstruct_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
+      </header><script src="popReconstruct_files/accessible-code-block-0.0.1/empty-anchor.js"></script><link href="popReconstruct_files/anchor-sections-1.0/anchor-sections.css" rel="stylesheet">
+<script src="popReconstruct_files/anchor-sections-1.0/anchor-sections.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>popReconstruct Model</h1>
@@ -339,8 +340,8 @@
 <p>The following pairs plot shows univariate histograms and bivariate scatter plots for the variance parameters in the popReconstruct model. This plot is useful for identifying possible collinearity between parameters or multiplicative non-identifiabilities as explained <a href="https://mc-stan.org/bayesplot/articles/visual-mcmc-diagnostics.html">here</a></p>
 <div class="sourceCode" id="cb11"><pre class="downlit">
 <span class="va">posterior</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html">as.array</a></span><span class="op">(</span><span class="va">fit_stan</span><span class="op">)</span>
-<span class="va">np</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html">data.table</a></span><span class="op">(</span><span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/bayesplot-extractors.html">nuts_params</a></span><span class="op">(</span><span class="va">fit_stan</span><span class="op">)</span><span class="op">)</span>
-<span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-scatterplots.html">mcmc_pairs</a></span><span class="op">(</span>
+<span class="va">np</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html">data.table</a></span><span class="op">(</span><span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/bayesplot/man/bayesplot-extractors.html">nuts_params</a></span><span class="op">(</span><span class="va">fit_stan</span><span class="op">)</span><span class="op">)</span>
+<span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/bayesplot/man/MCMC-scatterplots.html">mcmc_pairs</a></span><span class="op">(</span>
   <span class="va">posterior</span>, 
   np <span class="op">=</span> <span class="va">np</span>, 
   pars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"sigma2_asfr[1]"</span>, <span class="st">"sigma2_population"</span>,  <span class="st">"sigma2_survival[1]"</span>, 
@@ -349,7 +350,7 @@
 <p><img src="popReconstruct_files/figure-html/pairs_plot-1.png" width="768"></p>
 <p>Another useful diagnostic is a trace plot which shows each chain as it changes for each iteration. The variance parameters for population and net_migration are nice examples of good mixing where the different chains are exploring the same parameter space. The trace plots for the variance parameters for asfr and survival indicate poor mixing which may be due to the few number of iterations used when fitting the model for this vignette.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit">
-<span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-traces.html">mcmc_trace</a></span><span class="op">(</span>
+<span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/bayesplot/man/MCMC-traces.html">mcmc_trace</a></span><span class="op">(</span>
   <span class="va">posterior</span>, 
   regex_pars <span class="op">=</span> <span class="st">"sigma2"</span>, 
   np <span class="op">=</span> <span class="va">np</span><span class="op">)</span> <span class="op">+</span>
