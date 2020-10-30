@@ -213,7 +213,7 @@ $$\begin{aligned} \text{log} \ srb_t &= \text{log} \ srb^*_t + \delta^{srb}_{k_t
 \text{log} \ f_{a,t} &= \text{log} \ f^*_{a,t} + \mathbf{B}^f_a \delta^f_{k_a,k_t} {\mathbf{B}^{f}_t}^\intercal \\
 \text{log} \ n_{l,a,t_0} &= \text{log} \ n^*_{l,a,t_0} + \mathbf{B}^n_a \delta^{n_{0}}_{l,k_a,t_0} \\
 \text{logit} \ s_{l,a,t} &= \text{logit} \ s^*_{l,a,t} + \mathbf{B}^s_a \delta^s_{k_a,k_t} {\mathbf{B}^{s}_t}^\intercal  \\
-g_{l,a,t} &= g^*_{l,a,t} + \mathbf{g}^f_a \delta^g_{k_a,k_t} {\mathbf{B}^{g}_t}^\intercal \end{aligned}$$
+g_{l,a,t} &= g^*_{l,a,t} + \mathbf{B}^g_a \delta^g_{k_a,k_t} {\mathbf{B}^{g}_t}^\intercal \end{aligned}$$
 
 **Level 3.2** (priors for ccmpp input offset parameters):
 $$\begin{aligned} \delta_{srb_{k_t}} &\sim \text{Normal}(0, \sigma^2_{srb}) \\
