@@ -22,5 +22,6 @@ utils::globalVariables(
     "original_draw", "draw", "chain_draw", "chain",
     "year", "year_start", "year_index", "year_index_start", "year_index_end",
     "sex", "sex_index", "sex_index_start", "sex_index_end",
-    "age_start", "age_end", "age_index", "age_index_start", "age_index_end")
+    "age_start", "age_end", "age_index", "age_index_start", "age_index_end",
+    "transformed_value", "initial_value", "component")
 )

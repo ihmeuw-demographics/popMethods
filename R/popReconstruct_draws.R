@@ -788,15 +788,18 @@ calculate_ccmpp_input_draws <- function(spline_offset_draws,
                                         value_col) {
 
   ccmpp_input_draws <- lapply(names(spline_offset_draws), function(comp) {
-    transformation <- detailed_settings[[comp]][["transformation"]]
-    inverse_transformation <- detailed_settings[[comp]][["inverse_transformation"]]
 
     spline_offset <- copy(spline_offset_draws[[comp]])
     setnames(spline_offset, "value", "spline_offset")
 
     input <- copy(inputs[[comp]])
     data.table::setnames(input, value_col, "initial")
-    if (!is.null(transformation)) input[, initial := transformation(initial)]
+    transform_dt(
+      dt = input,
+      value_col = "initial",
+      transformation = detailed_settings[[comp]][["transformation"]],
+      transformation_arguments = detailed_settings[[comp]][["transformation_arguments"]]
+    )
 
     input_draws <- merge(
       x = spline_offset,
@@ -805,9 +808,12 @@ calculate_ccmpp_input_draws <- function(spline_offset_draws,
       by = setdiff(names(input), "initial")
     )
     input_draws[, value := spline_offset + initial]
-    if (!is.null(inverse_transformation)) {
-      input_draws[, value := inverse_transformation(value)]
-    }
+    transform_dt(
+      dt = input_draws,
+      value_col = "value",
+      transformation = detailed_settings[[comp]][["inverse_transformation"]],
+      transformation_arguments = detailed_settings[[comp]][["transformation_arguments"]]
+    )
 
     input_draws[, c("spline_offset", "initial") := NULL]
     data.table::setkeyv(input_draws, setdiff(names(input_draws), "value"))
@@ -838,7 +844,9 @@ ccmpp_draws <- function(input_draws,
 
     # get one draw of each of the input components
     input <- lapply(names(input_draws), function(comp) {
-      input_draws[[comp]][get(draw_col_name) == i]
+      one_draw_dt <- input_draws[[comp]][get(draw_col_name) == i]
+      one_draw_dt[[draw_col_name]] <- NULL
+      return(one_draw_dt)
     })
     names(input) <- names(input_draws)
 

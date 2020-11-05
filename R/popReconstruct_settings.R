@@ -37,18 +37,25 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
     )
   } else {
     settings$fixed_parameters <- NULL
-    if (identical(settings$sexes, "female")) settings$fixed_parameters <- "srb"
+  }
+  # if not estimating both sexes don't estimate srb
+  if (identical(settings$sexes, "female")) {
+    settings$fixed_parameters <- c(settings$fixed_parameters, "srb")
   }
 
   # add model components that are not being estimated
-  model_components <- c("srb", "asfr", "baseline", "survival",
-                        "net_migration", "immigration", "emigration")
+  mortality_parameters <- c("survival", "mx", "ax")
+  migration_parameters <- c("net_migration", "immigration", "emigration")
+  model_components <- c(
+    "srb", "asfr", "baseline",
+    mortality_parameters, migration_parameters
+  )
   settings$fixed_parameters <- unique(c(settings$fixed_parameters,
                                         setdiff(model_components, names(inputs))))
-
   settings$estimated_parameters <- names(inputs)[!names(inputs) %in%
                                                    settings$fixed_parameters]
-  settings$migration_parameters <- grep("migration$", names(inputs), value = T)
+  settings$mortality_parameters <- mortality_parameters[mortality_parameters %in% names(inputs)]
+  settings$migration_parameters <- migration_parameters[migration_parameters %in% names(inputs)]
 
   # "n_draws" setting
   if ("n_draws" %in% names(settings)) {
@@ -135,6 +142,8 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
 #' * transformation: the transformation used when modeling each component.
 #' * inverse_transformation: the inverse transformation used when modeling each
 #'     component.
+#' * transformation_arguments: additional arguments to pass to the 'transformation'
+#'     and 'inverse_transformation' functions.
 #' * fixed: whether the ccmpp input component is to be estimated or fixed in the
 #'     model.
 #'
@@ -150,8 +159,9 @@ create_detailed_settings <- function(settings) {
       sexes = settings$sexes,
       ages = settings$ages,
       transformation_name = "log",
-      transformation = log,
-      inverse_transformation = exp,
+      transformation = list(log),
+      inverse_transformation = list(exp),
+      transformation_arguments = NULL,
       fixed = FALSE
     ),
     srb = list(
@@ -165,8 +175,9 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = log,
-      inverse_transformation = exp,
+      transformation = list(log),
+      inverse_transformation = list(exp),
+      transformation_arguments = NULL,
       fixed = "srb" %in% settings$fixed_parameters
     ),
     asfr = list(
@@ -187,8 +198,9 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = log,
-      inverse_transformation = exp,
+      transformation = list(log),
+      inverse_transformation = list(exp),
+      transformation_arguments = NULL,
       fixed = "asfr" %in% settings$fixed_parameters
     ),
     baseline = list(
@@ -204,8 +216,9 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = log,
-      inverse_transformation = exp,
+      transformation = list(log),
+      inverse_transformation = list(exp),
+      transformation_arguments = NULL,
       fixed = "baseline" %in% settings$fixed_parameters
     ),
     survival = list(
@@ -219,17 +232,76 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       sexes = settings$sexes,
-      ages = settings$ages_survival,
+      ages = settings$ages_mortality,
       ages_knots = settings$k_ages_survival,
       B_a = splines::bs(
-        x = settings$ages_survival,
+        x = settings$ages_mortality,
         knots = settings$k_ages_survival[-length(settings$k_ages_survival)],
         degree = 1
       ),
       transformation_name = "logit",
-      transformation = demUtils::logit,
-      inverse_transformation = demUtils::invlogit,
+      transformation = list(demUtils::logit),
+      inverse_transformation = list(demUtils::invlogit),
+      transformation_arguments = NULL,
       fixed = "survival" %in% settings$fixed_parameters
+    ),
+    mx = list(
+      measure_type = "flow",
+      id_cols = c("year_start", "year_end", "sex", "age_start", "age_end"),
+      years = settings$years,
+      years_knots = settings$k_years_mx,
+      B_t = splines::bs(
+        x = settings$years,
+        knots = settings$k_years_mx[-length(settings$k_years_mx)],
+        degree = 1
+      ),
+      sexes = settings$sexes,
+      ages = settings$ages_mortality,
+      ages_knots = settings$k_ages_mx,
+      B_a = splines::bs(
+        x = settings$ages_mortality,
+        knots = settings$k_ages_mx[-length(settings$k_ages_mx)],
+        degree = 1
+      ),
+      transformation_name = "log",
+      transformation = list(log),
+      inverse_transformation = list(exp),
+      transformation_arguments = NULL,
+      fixed = "mx" %in% settings$fixed_parameters
+    ),
+    ax = list(
+      measure_type = "flow",
+      id_cols = c("year_start", "year_end", "sex", "age_start", "age_end"),
+      years = settings$years,
+      years_knots = settings$k_years_ax,
+      B_t = splines::bs(
+        x = settings$years,
+        knots = settings$k_years_ax[-length(settings$k_years_ax)],
+        degree = 1
+      ),
+      sexes = settings$sexes,
+      ages = settings$ages_mortality,
+      ages_knots = settings$k_ages_ax,
+      B_a = splines::bs(
+        x = settings$ages_mortality,
+        knots = settings$k_ages_ax[-length(settings$k_ages_ax)],
+        degree = 1
+      ),
+      transformation_name = "bounded_logit",
+      transformation = list(
+        "!is.infinite(age_end)" = demUtils::logit,
+        "is.infinite(age_end)" = log
+      ),
+      inverse_transformation = list(
+        "!is.infinite(age_end)" = demUtils::invlogit,
+        "is.infinite(age_end)" = exp
+      ),
+      transformation_arguments = list(
+        "!is.infinite(age_end)" = list(domain_lower = 0,
+                                       domain_upper = settings$int),
+        "is.infinite(age_end)" = NULL
+        ),
+      fixed = "ax" %in% settings$fixed_parameters
     ),
     net_migration = list(
       measure_type = "flow",
@@ -252,6 +324,7 @@ create_detailed_settings <- function(settings) {
       transformation_name = NULL,
       transformation = NULL,
       inverse_transformation = NULL,
+      transformation_arguments = NULL,
       fixed = "net_migration" %in% settings$fixed_parameters
     ),
     immigration = list(
@@ -273,8 +346,9 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = log,
-      inverse_transformation = exp,
+      transformation = list(log),
+      inverse_transformation = list(exp),
+      transformation_arguments = NULL,
       fixed = "immigration" %in% settings$fixed_parameters
     ),
     emigration = list(
@@ -296,10 +370,59 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = log,
-      inverse_transformation = exp,
+      transformation = list(log),
+      inverse_transformation = list(exp),
+      transformation_arguments = NULL,
       fixed = "emigration" %in% settings$fixed_parameters
     )
   )
   return(component_settings)
+}
+
+#' @title Helper function to transform values in a data.table
+#'
+#' @param dt \[`data.table(1)`\]\cr
+#'   The data.table to apply the transformation functions to.
+#' @param value_col \[`character(1)`\]\cr
+#'   The column in `dt` to transform.
+#' @param transformation \[`list()`\]\cr
+#'   NULL if no transformation. Otherwise list of transformation function(s) to
+#'   apply to `value_col`. If the transformation should only be applied to a
+#'   subset of `dt` name each function in `transformation` with a string
+#'   representation of the subsetting expression for `dt`.
+#' @param transformation_arguments \[`list()`\]\cr
+#'   NULL if no transformation. Otherwise list of arguments to provide to the
+#'   corresponding `transformation` function(s). Should be the same length and
+#'   use the same naming as `transformation`.
+#'
+#' @return invisibly return `dt` with transformed values.
+transform_dt <- function(dt,
+                         value_col,
+                         transformation,
+                         transformation_arguments) {
+
+  if (!is.null(transformation)) {
+    setnames(dt, value_col, "initial_value")
+    for (i in 1:length(transformation)) {
+      subset_str <- names(transformation)[i]
+      if (is.null(subset_str)) {
+        dt[
+          ,
+          transformed_value := do.call(
+            what = transformation[[i]],
+            args = c(list(x = initial_value), transformation_arguments[[i]])
+          )]
+      } else {
+        dt[
+          eval(parse(text=subset_str)),
+          transformed_value := do.call(
+            what = transformation[[i]],
+            args = c(list(x = initial_value), transformation_arguments[[i]])
+          )]
+      }
+    }
+    setnames(dt, "transformed_value", value_col)
+    dt[, initial_value := NULL]
+  }
+  return(dt)
 }

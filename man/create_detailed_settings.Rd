@@ -46,6 +46,8 @@ B-spline linear basis functions.
 \item transformation: the transformation used when modeling each component.
 \item inverse_transformation: the inverse transformation used when modeling each
 component.
+\item transformation_arguments: additional arguments to pass to the 'transformation'
+and 'inverse_transformation' functions.
 \item fixed: whether the ccmpp input component is to be estimated or fixed in the
 model.
 }

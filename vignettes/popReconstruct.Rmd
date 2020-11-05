@@ -110,7 +110,7 @@ settings = list(
   years = seq(1960, 2000, 5),
   sexes = c("female"),
   ages = seq(0, 80, 5),
-  ages_survival = seq(0, 85, 5),
+  ages_mortality = seq(0, 85, 5),
   ages_asfr = seq(15, 45, 5),
   
   # optional settings for `popMethods::popReconstruct_fit`

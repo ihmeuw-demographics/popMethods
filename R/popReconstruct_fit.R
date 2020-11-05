@@ -181,7 +181,7 @@
 #'   years = seq(1960, 2000, 5),
 #'   sexes = c("female"),
 #'   ages = seq(0, 80, 5),
-#'   ages_survival = seq(0, 85, 5),
+#'   ages_mortality = seq(0, 85, 5),
 #'   ages_asfr = seq(15, 45, 5),
 #'
 #'   n_draws = 10
@@ -295,10 +295,12 @@ popReconstruct_fit <- function(inputs,
 
     # transform value
     setnames(dt, value_col, "value")
-    transformation <- detailed_settings[[component]][["transformation"]]
-    if (!is.null(transformation)) {
-      dt <- dt[, value := transformation(value)]
-    }
+    transform_dt(
+      dt = dt,
+      value_col = "value",
+      transformation = comp_settings[["transformation"]],
+      transformation_arguments = comp_settings[["transformation_arguments"]]
+    )
     if (create_temp_data) dt[, value := 0]
 
     # convert from dt to matrix format
@@ -335,13 +337,15 @@ popReconstruct_fit <- function(inputs,
 
     dt <- copy(data[[component]])
     comp_settings <- detailed_settings[[component]]
-    transformation <- detailed_settings[[component]][["transformation"]]
 
     # transform value
     setnames(dt, value_col, "value")
-    if (!is.null(transformation)) {
-      dt[, value := transformation(value)]
-    }
+    transform_dt(
+      dt = dt,
+      value_col = "value",
+      transformation = comp_settings[["transformation"]],
+      transformation_arguments = comp_settings[["transformation_arguments"]]
+    )
 
     # get indices for year
     indices_years_all <- 1:length(settings$years_projections)
@@ -536,8 +540,11 @@ validate_popReconstruct_hyperparameters <- function(hyperparameters,
                                                     inputs,
                                                     settings) {
 
-  possible_components <- c("srb", "asfr", "population", "survival",
-                           settings$migration_parameters)
+  possible_components <- c(
+    "srb", "asfr", "population",
+    settings$mortality_parameters,
+    settings$migration_parameters
+  )
   expected_components <- setdiff(possible_components, settings$fixed_parameters)
 
   assertthat::assert_that(
@@ -604,14 +611,16 @@ validate_popReconstruct_data <- function(data,
                               test = "not_na", quiet = T)
 
     # calculate transformed values
-    transformation <- detailed_settings[[component]][["transformation"]]
-    transformed_values <- data[[component]][[value_col]]
-    if (!is.null(transformation)) {
-      transformed_values <- transformation(transformed_values)
-    }
+    check_dt <- copy(data[[component]])
+    transform_dt(
+      dt = check_dt,
+      value_col = value_col,
+      transformation = detailed_settings[[component]][["transformation"]],
+      transformation_arguments = detailed_settings[[component]][["transformation_arguments"]]
+    )
 
     assertthat::assert_that(
-      all(is.finite(transformed_values)),
+      all(is.finite(check_dt[[value_col]])),
       msg = paste0("'", component, "' data once transformed must be a finite ",
                    "value (-Inf < value < Inf)")
     )
@@ -630,17 +639,19 @@ validate_popReconstruct_inputs <- function(inputs,
                                            detailed_settings,
                                            value_col) {
 
-  for (component in names(inputs)) {
+  for (comp in names(inputs)) {
 
     # calculate transformed values
-    transformation <- detailed_settings[[component]][["transformation"]]
-    transformed_values <- inputs[[component]][[value_col]]
-    if (!is.null(transformation)) {
-      transformed_values <- transformation(transformed_values)
-    }
+    check_input_dt <- copy(inputs[[comp]])
+    transform_dt(
+      dt = check_input_dt,
+      value_col = value_col,
+      transformation = detailed_settings[[comp]][["transformation"]],
+      transformation_arguments = detailed_settings[[comp]][["transformation_arguments"]]
+    )
 
     assertthat::assert_that(
-      all(is.finite(transformed_values)),
+      all(is.finite(check_input_dt[[value_col]])),
       msg = paste0("'", component, "' input once transformed must be a finite ",
                    "value (-Inf < value < Inf)")
     )
