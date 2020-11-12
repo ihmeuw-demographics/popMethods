@@ -44,7 +44,7 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
   }
 
   # add model components that are not being estimated
-  mortality_parameters <- c("survival", "mx", "ax")
+  mortality_parameters <- c("survival", "mx", "non_terminal_ax", "terminal_ax")
   migration_parameters <- c("net_migration", "immigration", "emigration")
   model_components <- c(
     "srb", "asfr", "baseline",
@@ -269,39 +269,52 @@ create_detailed_settings <- function(settings) {
       transformation_arguments = NULL,
       fixed = "mx" %in% settings$fixed_parameters
     ),
-    ax = list(
+    non_terminal_ax = list(
       measure_type = "flow",
       id_cols = c("year_start", "year_end", "sex", "age_start", "age_end"),
       years = settings$years,
-      years_knots = settings$k_years_ax,
+      years_knots = settings$k_years_non_terminal_ax,
       B_t = splines::bs(
         x = settings$years,
-        knots = settings$k_years_ax[-length(settings$k_years_ax)],
+        knots = settings$k_years_non_terminal_ax[-length(settings$k_years_non_terminal_ax)],
         degree = 1
       ),
       sexes = settings$sexes,
-      ages = settings$ages_mortality,
-      ages_knots = settings$k_ages_ax,
+      ages = settings$ages_mortality[-length(settings$ages_mortality)],
+      ages_knots = settings$k_ages_non_terminal_ax,
       B_a = splines::bs(
-        x = settings$ages_mortality,
-        knots = settings$k_ages_ax[-length(settings$k_ages_ax)],
+        x = settings$ages,
+        knots = settings$k_ages_non_terminal_ax[-length(settings$k_ages_non_terminal_ax)],
         degree = 1
       ),
+      # ax (average years lived by those dying in the age interval) for all age
+      # groups except the terminal age group must be constrained to be between 0
+      # and the age interval.
       transformation_name = "bounded_logit",
-      transformation = list(
-        "!is.infinite(age_end)" = demUtils::logit,
-        "is.infinite(age_end)" = log
+      transformation = list(demUtils::logit),
+      inverse_transformation = list(demUtils::invlogit),
+      transformation_arguments = list(list(domain_lower = 0, domain_upper = settings$int)),
+      fixed = "non_terminal_ax" %in% settings$fixed_parameters
+    ),
+    terminal_ax = list(
+      measure_type = "flow",
+      id_cols = c("year_start", "year_end", "sex", "age_start", "age_end"),
+      years = settings$years,
+      years_knots = settings$k_years_terminal_ax,
+      B_t = splines::bs(
+        x = settings$years,
+        knots = settings$k_years_terminal_ax[-length(settings$k_years_terminal_ax)],
+        degree = 1
       ),
-      inverse_transformation = list(
-        "!is.infinite(age_end)" = demUtils::invlogit,
-        "is.infinite(age_end)" = exp
-      ),
-      transformation_arguments = list(
-        "!is.infinite(age_end)" = list(domain_lower = 0,
-                                       domain_upper = settings$int),
-        "is.infinite(age_end)" = NULL
-        ),
-      fixed = "ax" %in% settings$fixed_parameters
+      sexes = settings$sexes,
+      ages = settings$ages_mortality[length(settings$ages_mortality)],
+      ages_knots = settings$ages_mortality[length(settings$ages_mortality)],
+      B_a = NULL,
+      transformation_name = "log",
+      transformation = list(log),
+      inverse_transformation = list(exp),
+      transformation_arguments = NULL,
+      fixed = "terminal_ax" %in% settings$fixed_parameters
     ),
     net_migration = list(
       measure_type = "flow",

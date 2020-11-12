@@ -441,6 +441,14 @@ popReconstruct_prior_draws <- function(inputs,
 
   demCore:::validate_ccmpp_inputs(inputs, settings, value_col)
 
+  # separate ax input into terminal and non-terminal age groups
+  if ("ax" %in% names(inputs)) {
+    inputs <- copy(inputs)
+    inputs$non_terminal_ax <- inputs$ax[!is.infinite(age_end)]
+    inputs$terminal_ax <- inputs$ax[is.infinite(age_end)]
+    inputs$ax <- NULL
+  }
+
   # check `chunk_size` argument
   assertthat::assert_that(
     assertthat::is.count(chunk_size),
@@ -535,13 +543,18 @@ popReconstruct_prior_draws <- function(inputs,
       }
       # add on the 'age_end' column
       if ("age_start" %in% id_cols) {
+        if (comp == "asfr") {
+          right_most_age <- max(settings$ages_asfr) + settings$int
+        } else if (comp == "non_terminal_ax") {
+          right_most_age <- max(settings$ages_mortality)
+        } else {
+          right_most_age <- Inf
+        }
         hierarchyUtils::gen_end(
           dt = offset_component,
           id_cols = c(id_cols[!grepl("_end$", id_cols)], "original_draw"),
           col_stem = "age",
-          right_most_endpoint = ifelse(comp == "asfr",
-                                       max(settings$ages_asfr) + settings$int,
-                                       Inf)
+          right_most_endpoint = right_most_age
         )
       }
       return(offset_component)
@@ -738,7 +751,7 @@ predict_spline_offset <- function(dt, B_t = NULL, B_a = NULL,
                  ifelse(is.null(B_t), ".", "year_start"))
   offset_matrix <- dcast(dt, formula = stats::as.formula(form),
                          value.var = "value")
-  offset_matrix[, ifelse(is.null(ages), ".", "age_start") := NULL]
+  offset_matrix[, ifelse(is.null(B_a), ".", "age_start") := NULL]
   offset_matrix <- as.matrix(offset_matrix)
 
   # calculate spline offset matrix
@@ -754,7 +767,7 @@ predict_spline_offset <- function(dt, B_t = NULL, B_a = NULL,
   if (!is.null(ages)) {
     rownames(spline_offset_matrix) <- ages
   } else {
-    rownames(spline_offset_matrix) <- 0
+    rownames(spline_offset_matrix) <- "all"
   }
 
   # reformat the spline offset matrix from matrix to data.table
@@ -820,6 +833,18 @@ calculate_ccmpp_input_draws <- function(spline_offset_draws,
     return(input_draws)
   })
   names(ccmpp_input_draws) <- names(spline_offset_draws)
+
+  # combine together ax draws
+  if (all(c("non_terminal_ax", "terminal_ax") %in% names(ccmpp_input_draws))) {
+    ccmpp_input_draws[["ax"]] <- rbind(
+      ccmpp_input_draws[["non_terminal_ax"]],
+      ccmpp_input_draws[["terminal_ax"]],
+      use.names = T
+    )
+    ccmpp_input_draws[["non_terminal_ax"]] <- NULL
+    ccmpp_input_draws[["terminal_ax"]] <- NULL
+  }
+
   return(ccmpp_input_draws)
 }
 

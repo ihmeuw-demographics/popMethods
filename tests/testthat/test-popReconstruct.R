@@ -212,10 +212,10 @@ new_inputs$survival <- NULL
 testthat::test_that("sampling from popReconstruct (mx & ax) model prior works", {
   new_hyperparameters <- copy(hyperparameters)
   new_hyperparameters$mx <- hyperparameters$survival
-  new_hyperparameters$mx$beta <- 0.000109
-  new_hyperparameters$ax <- new_hyperparameters$survival
-  new_hyperparameters$ax$beta <- 0.000109
   new_hyperparameters$survival <- NULL
+  new_hyperparameters$mx$beta <- 0.000109
+  new_hyperparameters$non_terminal_ax <- new_hyperparameters$mx
+  new_hyperparameters$terminal_ax <- new_hyperparameters$mx
 
   test_prior(
     inputs = new_inputs,
