@@ -44,9 +44,10 @@ popReconstruct_summarize_draws(
 }
 \arguments{
 \item{inputs}{[\code{list()}]\cr
-[\code{data.table()}] for each ccmpp input. Requires 'srb', 'asfr', 'baseline',
-and 'survival'; and migration estimates provided as just 'net_migration' or
-both 'immigration' and 'emigration'. See \strong{Section: Inputs} for more
+[\code{data.table()}] for each ccmpp input. Requires 'srb', 'asfr', 'baseline';
+mortality estimates provided as just 'survival' or two of 'mx', 'ax', and
+'qx'; and migration estimates provided as just 'net_migration' or both
+'immigration' and 'emigration'. See \strong{Section: Inputs} for more
 information on each of the required inputs.}
 
 \item{data}{[\code{list()}]\cr
@@ -74,7 +75,7 @@ Statistical modeling software to fit popReconstruct with. Either 'stan' or
 'tmb' are available.}
 
 \item{...}{For \code{\link[=popReconstruct_fit]{popReconstruct_fit()}} additional arguments to pass to
-\code{\link[rstan:sampling]{rstan::sampling()}} if fitting the model with 'stan' or
+\code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} if fitting the model with 'stan' or
 \code{\link[optimx:optimx]{optimx::optimx()}} if fitting the model with 'tmb'. For
 \code{\link[=popReconstruct_summarize_draws]{popReconstruct_summarize_draws()}} additional arguments to pass to
 \code{\link[demUtils:summarize_dt]{demUtils::summarize_dt()}}.}
@@ -241,19 +242,19 @@ in \code{summary_fun} and the quantiles are named like 'q_(\code{probs} * 100)'.
 
 \itemize{
 \item years: [\code{numeric()}]\cr
-The start of each calendar year interval to project in \code{\link[demCore:ccmpp]{demCore::ccmpp()}}.
+The start of each calendar year interval to project in \code{\link[demCore:ccmpp]{ccmpp()}}.
 Corresponds to the 'year_start' column in each of the year-specific inputs.
 \item sexes: [\code{character()}]\cr
-The sexes being projected in \code{\link[demCore:ccmpp]{demCore::ccmpp()}}, must be either just
+The sexes being projected in \code{\link[demCore:ccmpp]{ccmpp()}}, must be either just
 'female', or 'female' and 'male'. Corresponds to the 'sex' column in each
 of the sex-specific inputs.
 \item ages: [\code{numeric()}]\cr
-The ages being projected in \code{\link[demCore:ccmpp]{demCore::ccmpp()}}. Corresponds to the
+The ages being projected in \code{\link[demCore:ccmpp]{ccmpp()}}. Corresponds to the
 'age_start' column in each of the standard age-specific inputs.
-\item ages_survival: [\code{numeric()}]\cr
-The ages for which survivorship ratio estimates are available, includes one
+\item ages_mortality: [\code{numeric()}]\cr
+The ages for which mortality parameter estimates are available, includes one
 extra age group compared to the 'ages' setting. Corresponds to the
-'age_start' column in the 'survival' [\code{data.table()}] input.
+'age_start' column in the mortality [\code{data.table()}] input(s).
 \item ages_asfr: [\code{numeric()}]\cr
 The assumed female reproductive ages, subset of 'ages'. Corresponds to the
 'age_start' column in the age-specific fertility rate (asfr)
@@ -313,6 +314,49 @@ Corresponds to 'ages' \code{setting}.
 greater than zero and less than one.
 }
 
+mx: [\code{data.table()}]\cr
+\itemize{
+\item year_start: [\code{integer()}] start of the calendar year interval
+(inclusive). Corresponds to 'years' \code{setting}.
+\item year_end: [\code{integer()}] end of the calendar year interval (exclusive).
+\item sex: [\code{character()}] either 'female' or 'male'. Corresponds to 'sexes'
+\code{setting}.
+\item age_start: [\code{integer()}] start of the age group (inclusive).
+Corresponds to 'ages' \code{setting}.
+\item age_end: [\code{integer()}] end of the age group (exclusive).
+\item \code{value_col}: [\code{numeric()}] mortality rate estimates, must be greater
+than zero.
+}
+
+ax: [\code{data.table()}]\cr
+\itemize{
+\item year_start: [\code{integer()}] start of the calendar year interval
+(inclusive). Corresponds to 'years' \code{setting}.
+\item year_end: [\code{integer()}] end of the calendar year interval (exclusive).
+\item sex: [\code{character()}] either 'female' or 'male'. Corresponds to 'sexes'
+\code{setting}.
+\item age_start: [\code{integer()}] start of the age group (inclusive).
+Corresponds to 'ages' \code{setting}.
+\item age_end: [\code{integer()}] end of the age group (exclusive).
+\item \code{value_col}: [\code{numeric()}] average years lived by those dying in the
+interval estimates, must be greater than zero and less than the age
+interval length.
+}
+
+qx: [\code{data.table()}]\cr
+\itemize{
+\item year_start: [\code{integer()}] start of the calendar year interval
+(inclusive). Corresponds to 'years' \code{setting}.
+\item year_end: [\code{integer()}] end of the calendar year interval (exclusive).
+\item sex: [\code{character()}] either 'female' or 'male'. Corresponds to 'sexes'
+\code{setting}.
+\item age_start: [\code{integer()}] start of the age group (inclusive).
+Corresponds to 'ages' \code{setting}.
+\item age_end: [\code{integer()}] end of the age group (exclusive).
+\item \code{value_col}: [\code{numeric()}] probability of death estimates, must be
+greater than zero and less than one.
+}
+
 net_migration: [\code{data.table()}]\cr
 \itemize{
 \item year_start: [\code{integer()}] start of the calendar year interval
@@ -362,7 +406,7 @@ settings = list(
   years = seq(1960, 2000, 5),
   sexes = c("female"),
   ages = seq(0, 80, 5),
-  ages_survival = seq(0, 85, 5),
+  ages_mortality = seq(0, 85, 5),
   ages_asfr = seq(15, 45, 5),
 
   n_draws = 10

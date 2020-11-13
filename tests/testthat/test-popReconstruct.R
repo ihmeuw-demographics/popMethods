@@ -2,7 +2,7 @@ settings = list(
   years = seq(1960, 2000, 5),
   sexes = c("female"),
   ages = seq(0, 80, 5),
-  ages_survival = seq(0, 85, 5),
+  ages_mortality = seq(0, 85, 5),
   ages_asfr = seq(15, 45, 5),
 
   n_draws = 100
@@ -14,8 +14,9 @@ hyperparameters <- list(
   net_migration = list(alpha = 1, beta = 0.0436)
 )
 
+# popReconstruct testing helper functions ---------------------------------
 
-test_fit <- function(inputs, data, hyperparameters, software, ...) {
+test_fit <- function(inputs, data, hyperparameters, settings, software, ...) {
 
   fit <- testthat::expect_error(
     popMethods::popReconstruct_fit(
@@ -55,7 +56,7 @@ test_fit <- function(inputs, data, hyperparameters, software, ...) {
   testthat::expect_equal("data.table", unique(sapply(summary, class)[1, ]))
 }
 
-test_prior <- function(inputs, hyperparameters) {
+test_prior <- function(inputs, hyperparameters, settings) {
   draws <- testthat::expect_output(
     popMethods::popReconstruct_prior_draws(
       inputs = inputs,
@@ -85,6 +86,7 @@ testthat::test_that("the original popReconstruct model works in stan", {
     inputs = demCore::burkina_faso_initial_estimates,
     data = demCore::burkina_faso_data,
     hyperparameters = hyperparameters,
+    settings = settings,
     software = "stan",
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
@@ -95,6 +97,7 @@ testthat::test_that("the original popReconstruct model works in tmb", {
     inputs = demCore::burkina_faso_initial_estimates,
     data = demCore::burkina_faso_data,
     hyperparameters = hyperparameters,
+    settings = settings,
     software = "tmb"
   )
 })
@@ -102,7 +105,8 @@ testthat::test_that("the original popReconstruct model works in tmb", {
 testthat::test_that("sampling from the original popReconstruct model prior works", {
   test_prior(
     inputs = demCore::burkina_faso_initial_estimates,
-    hyperparameters = hyperparameters
+    hyperparameters = hyperparameters,
+    settings = settings
   )
 })
 
@@ -125,6 +129,7 @@ testthat::test_that("the popReconstruct model (with aggregate data) works in sta
     inputs = demCore::burkina_faso_initial_estimates,
     data = aggregated_data,
     hyperparameters = hyperparameters,
+    settings = settings,
     software = "stan",
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
@@ -135,6 +140,7 @@ testthat::test_that("the popReconstruct model (with aggregate data) works in tmb
     inputs = demCore::burkina_faso_initial_estimates,
     data = aggregated_data,
     hyperparameters = hyperparameters,
+    settings = settings,
     software = "tmb"
   )
 })
@@ -142,22 +148,24 @@ testthat::test_that("the popReconstruct model (with aggregate data) works in tmb
 # Test popReconstruct with immigration/emigration -------------------------
 
 # create inputs for immigration and emigration
-inputs <- copy(demCore::burkina_faso_initial_estimates)
-inputs$immigration <- inputs$net_migration
-inputs$immigration[, value := 0.1]
-inputs$emigration <- inputs$net_migration
-inputs$emigration[, value := 0.1]
-inputs$net_migration <- NULL
+new_inputs <- copy(demCore::burkina_faso_initial_estimates)
+new_inputs$immigration <- new_inputs$net_migration
+new_inputs$immigration[, value := 0.1]
+new_inputs$emigration <- new_inputs$net_migration
+new_inputs$emigration[, value := 0.1]
+new_inputs$net_migration <- NULL
 
-hyperparameters$immigration <- hyperparameters$net_migration
-hyperparameters$emigration <- hyperparameters$net_migration
-hyperparameters$net_migration <- NULL
+new_hyperparameters <- copy(hyperparameters)
+new_hyperparameters$immigration <- hyperparameters$net_migration
+new_hyperparameters$emigration <- hyperparameters$net_migration
+new_hyperparameters$net_migration <- NULL
 
 testthat::test_that("the popReconstruct (immigration/emigration)  model works in stan", {
   test_fit(
-    inputs = inputs,
+    inputs = new_inputs,
     data = demCore::burkina_faso_data,
-    hyperparameters = hyperparameters,
+    hyperparameters = new_hyperparameters,
+    settings = settings,
     software = "stan",
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
@@ -165,16 +173,71 @@ testthat::test_that("the popReconstruct (immigration/emigration)  model works in
 
 testthat::test_that("the popReconstruct model (immigration/emigration) works in tmb", {
   test_fit(
-    inputs = inputs,
+    inputs = new_inputs,
     data = demCore::burkina_faso_data,
-    hyperparameters = hyperparameters,
+    hyperparameters = new_hyperparameters,
+    settings = settings,
     software = "tmb"
   )
 })
 
 testthat::test_that("sampling from popReconstruct (immigration/emigration) model prior works", {
   test_prior(
-    inputs = inputs,
-    hyperparameters = hyperparameters
+    inputs = new_inputs,
+    hyperparameters = new_hyperparameters,
+    settings = settings
   )
 })
+
+# Test popReconstruct with mx, ax -----------------------------------------
+
+# create rough inputs for mx and ax
+lt <- copy(demCore::burkina_faso_initial_estimates$survival)
+# px approximately equal to survivorship ratio
+lt[, qx := 1 - value]
+lt[, ax := 2.5]
+lt[, value := NULL]
+lt[is.infinite(age_end), c("qx", "ax") := list(1, 5)]
+id_cols <- c("year_start", "year_end", "sex", "age_start", "age_end")
+demCore::lifetable(lt, id_cols = id_cols)
+
+# add inputs for mx and ax
+new_inputs <- copy(demCore::burkina_faso_initial_estimates)
+new_inputs$mx <- lt[, .SD, .SDcols = c(id_cols, "mx")]
+setnames(new_inputs$mx, "mx", "value")
+new_inputs$ax <- lt[, .SD, .SDcols = c(id_cols, "ax")]
+setnames(new_inputs$ax, "ax", "value")
+new_inputs$survival <- NULL
+
+testthat::test_that("sampling from popReconstruct (mx & ax) model prior works", {
+  new_hyperparameters <- copy(hyperparameters)
+  new_hyperparameters$mx <- hyperparameters$survival
+  new_hyperparameters$survival <- NULL
+  new_hyperparameters$mx$beta <- 0.000109
+  new_hyperparameters$non_terminal_ax <- new_hyperparameters$mx
+  new_hyperparameters$terminal_ax <- new_hyperparameters$mx
+
+  test_prior(
+    inputs = new_inputs,
+    hyperparameters = new_hyperparameters,
+    settings = settings
+  )
+})
+
+testthat::test_that("sampling from popReconstruct (mx) model prior works", {
+  new_hyperparameters <- copy(hyperparameters)
+  new_hyperparameters$mx <- hyperparameters$survival
+  new_hyperparameters$mx$beta <- 0.000109
+  new_hyperparameters$survival <- NULL
+
+  # don't estimate ax
+  new_settings <- copy(settings)
+  new_settings$fixed_parameters <- c("non_terminal_ax", "terminal_ax")
+
+  test_prior(
+    inputs = new_inputs,
+    hyperparameters = new_hyperparameters,
+    settings = new_settings
+  )
+})
+
