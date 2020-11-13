@@ -497,7 +497,6 @@ popReconstruct_fit <- function(inputs,
             fix_params[[name]] <- input_parameters[[name]]
           }
         }
-
       }
 
       map <- lapply(names(fix_params), function(p) {
@@ -511,6 +510,7 @@ popReconstruct_fit <- function(inputs,
         return(component_map)
       })
       names(map) <- names(fix_params)
+      map <- map[names(map) %in% names(input_parameters)]
     }
 
     input_data$estimate_net_migration <- "net_migration" %in% settings$estimated_parameters
