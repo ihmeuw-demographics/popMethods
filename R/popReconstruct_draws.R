@@ -25,6 +25,14 @@ popReconstruct_posterior_draws <- function(fit,
 
   demCore:::validate_ccmpp_inputs(inputs, settings, value_col)
 
+  # separate ax input into terminal and non-terminal age groups
+  if ("ax" %in% names(inputs)) {
+    inputs <- copy(inputs)
+    inputs$non_terminal_ax <- inputs$ax[!is.infinite(age_end)]
+    inputs$terminal_ax <- inputs$ax[is.infinite(age_end)]
+    inputs$ax <- NULL
+  }
+
   # add optional settings needed for popReconstruct
   settings <- copy(settings)
   settings <- create_optional_settings(settings, inputs)
@@ -108,7 +116,8 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
     if (nrow(component_draws) > 0) {
       # add on id variables to draws
       component_draws[, parameter := gsub(paste0("^", param, "|\\[|\\]"), "", parameter)]
-      component_draws[, c(if (grepl("^offset", param) | param %in% c("immigration", "emigration")) "estimate",
+      optional_params <- c("mx", "non_terminal_ax", "terminal_ax", "immigration", "emigration")
+      component_draws[, c(if (grepl("^offset", param) | param %in% optional_params) "estimate",
                           if (!is.null(sexes)) "sex_index", "age_index", "year_index") :=
                         data.table::tstrsplit(parameter, split = ",")]
       assertthat::assert_that(
@@ -221,6 +230,17 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
     return(comp_draws)
   })
   names(ccmpp_input_draws) <- names(inputs)
+
+  # combine together ax draws
+  if (all(c("non_terminal_ax", "terminal_ax") %in% names(ccmpp_input_draws))) {
+    ccmpp_input_draws[["ax"]] <- rbind(
+      ccmpp_input_draws[["non_terminal_ax"]],
+      ccmpp_input_draws[["terminal_ax"]],
+      use.names = T
+    )
+    ccmpp_input_draws[["non_terminal_ax"]] <- NULL
+    ccmpp_input_draws[["terminal_ax"]] <- NULL
+  }
 
   # extract projected population parameters
   population_draws <- format_draws(
