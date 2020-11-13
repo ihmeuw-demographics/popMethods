@@ -232,7 +232,7 @@ testthat::test_that("sampling from popReconstruct (mx) model prior works", {
 
   # don't estimate ax
   new_settings <- copy(settings)
-  new_settings$fixed_parameters <- c("ax")
+  new_settings$fixed_parameters <- c("non_terminal_ax", "terminal_ax")
 
   test_prior(
     inputs = new_inputs,
