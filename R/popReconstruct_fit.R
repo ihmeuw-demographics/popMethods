@@ -487,8 +487,19 @@ popReconstruct_fit <- function(inputs,
     # check if fixing certain parameters
     map <- NULL
     if (length(settings$fixed_parameters) > 0) {
-      fix_params <- input_parameters[grepl(settings$fixed_parameters,
-                                           names(input_parameters))]
+      fix_params <- list()
+      for (comp in settings$fixed_parameters) {
+        tname <- detailed_settings[[comp]][["transformation_name"]]
+        offset_name <- paste0("offset_", tname, if (!is.null(tname)) "_", comp)
+        sigma_name <- paste0("log_sigma2_", comp)
+        for (name in c(offset_name, sigma_name)) {
+          if (name %in% names(input_parameters)) {
+            fix_params[[name]] <- input_parameters[[name]]
+          }
+        }
+
+      }
+
       map <- lapply(names(fix_params), function(p) {
         component_map <- fix_params[[p]]
         if (assertthat::is.number(fix_params[[p]])) { # log_sigma2 parameters
