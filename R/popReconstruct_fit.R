@@ -251,6 +251,14 @@ popReconstruct_fit <- function(inputs,
 
   demCore:::validate_ccmpp_inputs(inputs, settings, value_col)
 
+  # separate ax input into terminal and non-terminal age groups
+  if ("ax" %in% names(inputs)) {
+    inputs <- copy(inputs)
+    inputs$non_terminal_ax <- inputs$ax[!is.infinite(age_end)]
+    inputs$terminal_ax <- inputs$ax[is.infinite(age_end)]
+    inputs$ax <- NULL
+  }
+
   # add optional settings needed for popReconstruct
   settings <- copy(settings)
   settings <- create_optional_settings(settings, inputs, data)
@@ -278,10 +286,7 @@ popReconstruct_fit <- function(inputs,
     Y_p = length(settings$years_census)
   )
 
-  prep_input_array <- function(component, list_dt, detailed_settings) {
-    comp_settings <- detailed_settings[[component]]
-
-    dt <- copy(list_dt[[component]])
+  prep_input_array <- function(dt, comp_settings) {
 
     create_temp_data <- is.null(dt)
     if (create_temp_data) {
@@ -391,8 +396,7 @@ popReconstruct_fit <- function(inputs,
   # prepare initial estimates and parameters for all possible components
   # specified in the stan and tmb models, even if the component is not being
   # estimated, placeholders will be added
-  all_ccmpp_inputs <- c("srb", "asfr", "baseline", "survival",
-                        "net_migration", "immigration", "emigration")
+  all_ccmpp_inputs <- setdiff(names(detailed_settings), "population")
   for (component in all_ccmpp_inputs) {
 
     sexes <- detailed_settings[[component]][["sexes"]]
@@ -408,7 +412,10 @@ popReconstruct_fit <- function(inputs,
       detailed_settings[[component]][["B_a"]]
 
     # add initial input estimates
-    input_adt <- prep_input_array(component, inputs, detailed_settings)
+    input_adt <- prep_input_array(
+      dt = copy(inputs[[component]]),
+      comp_settings = detailed_settings[[component]]
+    )
     transformation_name <- detailed_settings[[component]][["transformation_name"]]
     input_name <- paste0("input_", transformation_name,
                          if (!is.null(transformation_name)) "_",
@@ -446,8 +453,7 @@ popReconstruct_fit <- function(inputs,
 
   # prepare data and parameters for all possible components specified in the
   # stan and tmb models
-  all_variance_inputs <- c("srb", "asfr", "population", "survival",
-                           "net_migration", "immigration", "emigration")
+  all_variance_inputs <- setdiff(names(detailed_settings), "baseline")
   for (component in all_variance_inputs) {
     # add alpha and beta hyperparameters
     for (param in c("alpha", "beta")) {
@@ -566,7 +572,8 @@ validate_popReconstruct_hyperparameters <- function(hyperparameters,
     all(sapply(hyperparameters, function(comp) identical(sort(names(comp)),
                                                          c("alpha", "beta")))),
     msg = paste0("`hyperparameters` must be a list of lists with the first ",
-                 "level containing each non-fixed model component and the ",
+                 "level containing each non-fixed model component ('",
+                 paste(expected_components, collapse = "', '"), "') and the ",
                  "second level containing named 'alpha' and 'beta' parameters.")
   )
 }

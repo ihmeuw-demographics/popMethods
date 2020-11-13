@@ -222,6 +222,15 @@ testthat::test_that("sampling from popReconstruct (mx & ax) model prior works", 
     hyperparameters = new_hyperparameters,
     settings = settings
   )
+
+  test_fit(
+    inputs = new_inputs,
+    data = demCore::burkina_faso_data,
+    hyperparameters = new_hyperparameters,
+    settings = settings,
+    software = "stan",
+    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
+  )
 })
 
 testthat::test_that("sampling from popReconstruct (mx) model prior works", {
@@ -239,5 +248,15 @@ testthat::test_that("sampling from popReconstruct (mx) model prior works", {
     hyperparameters = new_hyperparameters,
     settings = new_settings
   )
+
+  test_fit(
+    inputs = new_inputs,
+    data = demCore::burkina_faso_data,
+    hyperparameters = new_hyperparameters,
+    settings = new_settings,
+    software = "stan",
+    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
+  )
+
 })
 
