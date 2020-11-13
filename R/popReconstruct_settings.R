@@ -159,8 +159,8 @@ create_detailed_settings <- function(settings) {
       sexes = settings$sexes,
       ages = settings$ages,
       transformation_name = "log",
-      transformation = list(log),
-      inverse_transformation = list(exp),
+      transformation = log,
+      inverse_transformation = exp,
       transformation_arguments = NULL,
       fixed = FALSE
     ),
@@ -175,8 +175,8 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = list(log),
-      inverse_transformation = list(exp),
+      transformation = log,
+      inverse_transformation = exp,
       transformation_arguments = NULL,
       fixed = "srb" %in% settings$fixed_parameters
     ),
@@ -198,8 +198,8 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = list(log),
-      inverse_transformation = list(exp),
+      transformation = log,
+      inverse_transformation = exp,
       transformation_arguments = NULL,
       fixed = "asfr" %in% settings$fixed_parameters
     ),
@@ -216,8 +216,8 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = list(log),
-      inverse_transformation = list(exp),
+      transformation = log,
+      inverse_transformation = exp,
       transformation_arguments = NULL,
       fixed = "baseline" %in% settings$fixed_parameters
     ),
@@ -240,8 +240,8 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "logit",
-      transformation = list(demUtils::logit),
-      inverse_transformation = list(demUtils::invlogit),
+      transformation = demUtils::logit,
+      inverse_transformation = demUtils::invlogit,
       transformation_arguments = NULL,
       fixed = "survival" %in% settings$fixed_parameters
     ),
@@ -264,8 +264,8 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = list(log),
-      inverse_transformation = list(exp),
+      transformation = log,
+      inverse_transformation = exp,
       transformation_arguments = NULL,
       fixed = "mx" %in% settings$fixed_parameters
     ),
@@ -291,9 +291,9 @@ create_detailed_settings <- function(settings) {
       # groups except the terminal age group must be constrained to be between 0
       # and the age interval.
       transformation_name = "bounded_logit",
-      transformation = list(demUtils::logit),
-      inverse_transformation = list(demUtils::invlogit),
-      transformation_arguments = list(list(domain_lower = 0, domain_upper = settings$int)),
+      transformation = demUtils::logit,
+      inverse_transformation = demUtils::invlogit,
+      transformation_arguments = list(domain_lower = 0, domain_upper = settings$int),
       fixed = "non_terminal_ax" %in% settings$fixed_parameters
     ),
     terminal_ax = list(
@@ -311,8 +311,8 @@ create_detailed_settings <- function(settings) {
       ages_knots = settings$ages_mortality[length(settings$ages_mortality)],
       B_a = NULL,
       transformation_name = "log",
-      transformation = list(log),
-      inverse_transformation = list(exp),
+      transformation = log,
+      inverse_transformation = exp,
       transformation_arguments = NULL,
       fixed = "terminal_ax" %in% settings$fixed_parameters
     ),
@@ -359,8 +359,8 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = list(log),
-      inverse_transformation = list(exp),
+      transformation = log,
+      inverse_transformation = exp,
       transformation_arguments = NULL,
       fixed = "immigration" %in% settings$fixed_parameters
     ),
@@ -383,8 +383,8 @@ create_detailed_settings <- function(settings) {
         degree = 1
       ),
       transformation_name = "log",
-      transformation = list(log),
-      inverse_transformation = list(exp),
+      transformation = log,
+      inverse_transformation = exp,
       transformation_arguments = NULL,
       fixed = "emigration" %in% settings$fixed_parameters
     )
@@ -398,17 +398,22 @@ create_detailed_settings <- function(settings) {
 #'   The data.table to apply the transformation functions to.
 #' @param value_col \[`character(1)`\]\cr
 #'   The column in `dt` to transform.
-#' @param transformation \[`list()`\]\cr
-#'   NULL if no transformation. Otherwise list of transformation function(s) to
-#'   apply to `value_col`. If the transformation should only be applied to a
-#'   subset of `dt` name each function in `transformation` with a string
-#'   representation of the subsetting expression for `dt`.
+#' @param transformation \[`function(1)`\]\cr
+#'   NULL if no transformation. Otherwise transformation function to
+#'   apply to `value_col`.
 #' @param transformation_arguments \[`list()`\]\cr
 #'   NULL if no transformation. Otherwise list of arguments to provide to the
-#'   corresponding `transformation` function(s). Should be the same length and
-#'   use the same naming as `transformation`.
+#'   corresponding `transformation` function(s).
 #'
 #' @return invisibly return `dt` with transformed values.
+#'
+#' @examples
+#' popMethods:::transform_dt(
+#'   dt = data.table::data.table(year = 1950, value = 2.5),
+#'   value_col = "value",
+#'   transformation = demUtils::logit,
+#'   transformation_arguments = list(domain_lower = 0, domain_upper = 5)
+#' )
 transform_dt <- function(dt,
                          value_col,
                          transformation,
@@ -416,24 +421,12 @@ transform_dt <- function(dt,
 
   if (!is.null(transformation)) {
     setnames(dt, value_col, "initial_value")
-    for (i in 1:length(transformation)) {
-      subset_str <- names(transformation)[i]
-      if (is.null(subset_str)) {
-        dt[
-          ,
-          transformed_value := do.call(
-            what = transformation[[i]],
-            args = c(list(x = initial_value), transformation_arguments[[i]])
-          )]
-      } else {
-        dt[
-          eval(parse(text=subset_str)),
-          transformed_value := do.call(
-            what = transformation[[i]],
-            args = c(list(x = initial_value), transformation_arguments[[i]])
-          )]
-      }
-    }
+    dt[
+      ,
+      transformed_value := do.call(
+        what = transformation,
+        args = c(list(x = initial_value), transformation_arguments)
+      )]
     setnames(dt, "transformed_value", value_col)
     dt[, initial_value := NULL]
   }

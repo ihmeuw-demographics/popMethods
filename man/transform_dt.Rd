@@ -13,20 +13,25 @@ The data.table to apply the transformation functions to.}
 \item{value_col}{[\code{character(1)}]\cr
 The column in \code{dt} to transform.}
 
-\item{transformation}{[\code{list()}]\cr
-NULL if no transformation. Otherwise list of transformation function(s) to
-apply to \code{value_col}. If the transformation should only be applied to a
-subset of \code{dt} name each function in \code{transformation} with a string
-representation of the subsetting expression for \code{dt}.}
+\item{transformation}{[\verb{function(1)}]\cr
+NULL if no transformation. Otherwise transformation function to
+apply to \code{value_col}.}
 
 \item{transformation_arguments}{[\code{list()}]\cr
 NULL if no transformation. Otherwise list of arguments to provide to the
-corresponding \code{transformation} function(s). Should be the same length and
-use the same naming as \code{transformation}.}
+corresponding \code{transformation} function(s).}
 }
 \value{
 invisibly return \code{dt} with transformed values.
 }
 \description{
 Helper function to transform values in a data.table
+}
+\examples{
+popMethods:::transform_dt(
+  dt = data.table::data.table(year = 1950, value = 2.5),
+  value_col = "value",
+  transformation = demUtils::logit,
+  transformation_arguments = list(domain_lower = 0, domain_upper = 5)
+)
 }
