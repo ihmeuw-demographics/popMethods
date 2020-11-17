@@ -175,11 +175,18 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
     }
     # add on the 'age_end' column
     if ("age_start" %in% id_cols) {
+      if (comp == "asfr") {
+        right_most_age <- max(settings$ages_asfr) + settings$int
+      } else if (comp == "non_terminal_ax") {
+        right_most_age <- max(settings$ages_mortality)
+      } else {
+        right_most_age <- Inf
+      }
       hierarchyUtils::gen_end(
         dt = component_draws,
         id_cols = non_end_id_cols,
         col_stem = "age",
-        right_most_endpoint = ifelse(comp == "asfr", max(ages) + int, Inf)
+        right_most_endpoint = right_most_age
       )
     }
 
@@ -380,11 +387,18 @@ extract_tmb_draws <- function(fit, inputs, value_col, settings, detailed_setting
     }
     # add on the 'age_end' column
     if ("age_start" %in% id_cols) {
+      if (comp == "asfr") {
+        right_most_age <- max(settings$ages_asfr) + settings$int
+      } else if (comp == "non_terminal_ax") {
+        right_most_age <- max(settings$ages_mortality)
+      } else {
+        right_most_age <- Inf
+      }
       hierarchyUtils::gen_end(
         dt = component_draws,
         id_cols = non_end_id_cols,
         col_stem = "age",
-        right_most_endpoint = ifelse(comp == "asfr", max(ages) + int, Inf)
+        right_most_endpoint = right_most_age
       )
     }
 

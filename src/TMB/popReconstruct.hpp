@@ -17,6 +17,77 @@ Type dinvGamma(Type x, Type shape, Type scale, int give_log=0) {
 }
 
 template<class Type>
+array<Type> bounded_inv_logit(array<Type> x, int domain_lower, int domain_upper) {
+
+  array<Type> result(x.dim);
+  int scalar = (domain_upper - domain_lower) + domain_lower;
+  result = exp(x) / (1 + exp(x));
+  result = result * scalar;
+  return result;
+}
+
+template<class Type>
+matrix<Type> calculate_nSx(array<Type> mx, array<Type> non_terminal_ax,
+                           array<Type> terminal_ax, int interval,
+                           int A, int Y, int sexes) {
+
+  array<Type> nSx(mx.dim);
+
+  for (int s = 0; s < sexes; s++) {
+    for (int y = 0; y < Y; y++) {
+      vector<Type> qx(A + 1);
+      vector<Type> px(A + 1);
+      vector<Type> lx(A + 1);
+      vector<Type> dx(A + 1);
+      vector<Type> nLx(A + 1);
+      vector<Type> Tx(A + 1);
+
+      // calculate qx
+      for (int a = 0; a < A; a++) {
+        qx(a) = (interval * mx.col(s).col(y)(a)) / (1 + ((interval - non_terminal_ax.col(s).col(y)(a)) * mx.col(s).col(y)(a)));
+      }
+      qx(A + 1) = 1;
+
+      // calculate px
+      px = 1 - qx;
+
+      // calculate lx
+      lx(0) = 1;
+      for (int a = 1; a < (A + 1); a++) {
+        lx(a) = lx(a - 1) * px (a - 1);
+      }
+
+      // calculate dx
+      for (int a = 0; a < A; a++) {
+        dx(a) = lx(a) - lx(a + 1);
+      }
+      dx(A) = lx(A);
+
+      // calculate nLx
+      for (int a = 0; a < A; a++) {
+        nLx(a) = (interval * lx(a + 1)) + (non_terminal_ax.col(s).col(y)(a) * dx(a));
+      }
+      nLx(A) = lx(A) / mx.col(s).col(y)(A);
+
+      // calculate Tx
+      for (int a1 = 0; a1 < (A + 1); a1++) {
+        for (int a2 = a1; a2 < (A + 1); a2++) {
+          Tx(a1) += nLx(a2);
+        }
+      }
+
+      // calculate Sx
+      nSx.col(s).col(y)(0) = nLx(0) / (interval * lx(0));
+      for (int a = 1; a < A; a++) {
+        nSx.col(s).col(y)(a) = nLx(a) / nLx(a - 1);
+      }
+      nSx.col(s).col(y)(A) = Tx(A) / Tx(A - 1);
+    }
+  }
+  return(nSx);
+}
+
+template<class Type>
 matrix<Type> make_leslie_matrix(Type srb, array<Type> asfr, array<Type> survival,
                                 int interval, int A, int A_f, int A_f_offset, bool female) {
 
@@ -115,6 +186,7 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_INTEGER(A_f_offset); // number of younger age groups that are not included in the reproductive ages
   DATA_INTEGER(Y); // number of year intervals in projection period
   DATA_INTEGER(Y_p); // number of population data years (not including the baseline year)
+  DATA_INTEGER(estimate_survival); // whether to estimate survival (or mx and ax separately)
   DATA_INTEGER(estimate_net_migration); // whether to estimate net migration (or immigration and emigration separately)
 
   // inverse gamma alpha and beta hyperparameters for ccmpp inputs
@@ -126,6 +198,12 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_SCALAR(beta_population);
   DATA_SCALAR(alpha_survival);
   DATA_SCALAR(beta_survival);
+  DATA_SCALAR(alpha_mx);
+  DATA_SCALAR(beta_mx);
+  DATA_SCALAR(alpha_non_terminal_ax);
+  DATA_SCALAR(beta_non_terminal_ax);
+  DATA_SCALAR(alpha_terminal_ax);
+  DATA_SCALAR(beta_terminal_ax);
   DATA_SCALAR(alpha_net_migration);
   DATA_SCALAR(beta_net_migration);
   DATA_SCALAR(alpha_immigration);
@@ -138,6 +216,9 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_ARRAY(input_log_asfr); // input age-specific fertility rates
   DATA_ARRAY(input_log_baseline); // input baseline populations
   DATA_ARRAY(input_logit_survival); // input survival proportions
+  DATA_ARRAY(input_log_mx); // input mortality rate
+  DATA_ARRAY(input_bounded_logit_non_terminal_ax); // input ax for non-terminal age groups
+  DATA_ARRAY(input_log_terminal_ax); // input ax for terminal age group
   DATA_ARRAY(input_net_migration); // input net migration proportions
   DATA_ARRAY(input_log_immigration); // input immigration proportions
   DATA_ARRAY(input_log_emigration); // input emigration proportions
@@ -158,6 +239,19 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_MATRIX(B_t_survival);
   DATA_INTEGER(N_k_a_survival);
   DATA_MATRIX(B_a_survival);
+
+  DATA_INTEGER(N_k_t_mx);
+  DATA_MATRIX(B_t_mx);
+  DATA_INTEGER(N_k_a_mx);
+  DATA_MATRIX(B_a_mx);
+
+  DATA_INTEGER(N_k_t_non_terminal_ax);
+  DATA_MATRIX(B_t_non_terminal_ax);
+  DATA_INTEGER(N_k_a_non_terminal_ax);
+  DATA_MATRIX(B_a_non_terminal_ax);
+
+  DATA_INTEGER(N_k_t_terminal_ax);
+  DATA_MATRIX(B_t_terminal_ax);
 
   DATA_INTEGER(N_k_t_net_migration);
   DATA_MATRIX(B_t_net_migration);
@@ -190,6 +284,9 @@ Type popReconstruct(objective_function<Type>* obj) {
   PARAMETER(log_sigma2_asfr);
   PARAMETER(log_sigma2_population);
   PARAMETER(log_sigma2_survival);
+  PARAMETER(log_sigma2_mx);
+  PARAMETER(log_sigma2_non_terminal_ax);
+  PARAMETER(log_sigma2_terminal_ax);
   PARAMETER(log_sigma2_net_migration);
   PARAMETER(log_sigma2_immigration);
   PARAMETER(log_sigma2_emigration);
@@ -199,6 +296,9 @@ Type popReconstruct(objective_function<Type>* obj) {
   PARAMETER_ARRAY(offset_log_asfr);
   PARAMETER_ARRAY(offset_log_baseline);
   PARAMETER_ARRAY(offset_logit_survival);
+  PARAMETER_ARRAY(offset_log_mx);
+  PARAMETER_ARRAY(offset_bounded_logit_non_terminal_ax);
+  PARAMETER_ARRAY(offset_log_terminal_ax);
   PARAMETER_ARRAY(offset_net_migration);
   PARAMETER_ARRAY(offset_log_immigration);
   PARAMETER_ARRAY(offset_log_emigration);
@@ -211,6 +311,9 @@ Type popReconstruct(objective_function<Type>* obj) {
   Type sigma2_asfr = exp(log_sigma2_asfr);
   Type sigma2_population = exp(log_sigma2_population);
   Type sigma2_survival = exp(log_sigma2_survival);
+  Type sigma2_mx = exp(log_sigma2_mx);
+  Type sigma2_non_terminal_ax = exp(log_sigma2_non_terminal_ax);
+  Type sigma2_terminal_ax = exp(log_sigma2_terminal_ax);
   Type sigma2_net_migration = exp(log_sigma2_net_migration);
   Type sigma2_immigration = exp(log_sigma2_immigration);
   Type sigma2_emigration = exp(log_sigma2_emigration);
@@ -220,6 +323,9 @@ Type popReconstruct(objective_function<Type>* obj) {
   array<Type> spline_offset_log_asfr(input_log_asfr.dim);
   array<Type> spline_offset_log_baseline(input_log_baseline.dim);
   array<Type> spline_offset_logit_survival(input_logit_survival.dim);
+  array<Type> spline_offset_log_mx(input_log_mx.dim);
+  array<Type> spline_offset_bounded_logit_non_terminal_ax(input_bounded_logit_non_terminal_ax.dim);
+  array<Type> spline_offset_log_terminal_ax(input_log_terminal_ax.dim);
   array<Type> spline_offset_net_migration(input_net_migration.dim);
   array<Type> spline_offset_log_immigration(input_log_immigration.dim);
   array<Type> spline_offset_log_emigration(input_log_emigration.dim);
@@ -229,6 +335,9 @@ Type popReconstruct(objective_function<Type>* obj) {
   array<Type> asfr(input_log_asfr.dim);
   array<Type> baseline(input_log_baseline.dim);
   array<Type> survival(input_logit_survival.dim);
+  array<Type> mx(input_log_mx.dim);
+  array<Type> non_terminal_ax(input_bounded_logit_non_terminal_ax.dim);
+  array<Type> terminal_ax(input_log_terminal_ax.dim);
   array<Type> net_migration(input_net_migration.dim);
   array<Type> immigration(input_log_immigration.dim);
   array<Type> emigration(input_log_emigration.dim);
@@ -240,6 +349,9 @@ Type popReconstruct(objective_function<Type>* obj) {
   for (int s = 0; s < sexes; s++) {
     matrix<Type> sex_specific_offset_log_baseline_matrix(N_k_a_baseline, 1);
     matrix<Type> sex_specific_offset_logit_survival_matrix(N_k_a_survival, N_k_t_survival);
+    matrix<Type> sex_specific_offset_log_mx_matrix(N_k_a_mx, N_k_t_mx);
+    matrix<Type> sex_specific_offset_bounded_logit_non_terminal_ax_matrix(N_k_a_non_terminal_ax, N_k_t_non_terminal_ax);
+    matrix<Type> sex_specific_offset_log_terminal_ax_matrix(1, N_k_t_terminal_ax);
     matrix<Type> sex_specific_offset_net_migration_matrix(N_k_a_net_migration, N_k_t_net_migration);
     matrix<Type> sex_specific_offset_log_immigration_matrix(N_k_a_immigration, N_k_t_immigration);
     matrix<Type> sex_specific_offset_log_emigration_matrix(N_k_a_emigration, N_k_t_emigration);
@@ -249,12 +361,33 @@ Type popReconstruct(objective_function<Type>* obj) {
     }
     spline_offset_log_baseline.col(s) = B_a_baseline * sex_specific_offset_log_baseline_matrix;
 
-    for (int y = 0; y < N_k_t_survival; y++) {
-      for (int a = 0; a < N_k_a_survival; a++) {
-        sex_specific_offset_logit_survival_matrix(a, y) = offset_logit_survival(a, y, s);
+    if (estimate_survival) {
+      for (int y = 0; y < N_k_t_survival; y++) {
+        for (int a = 0; a < N_k_a_survival; a++) {
+          sex_specific_offset_logit_survival_matrix(a, y) = offset_logit_survival(a, y, s);
+        }
       }
+      spline_offset_logit_survival.col(s) = B_a_survival * sex_specific_offset_logit_survival_matrix * B_t_survival.transpose();
+    } else {
+      for (int y = 0; y < N_k_t_mx; y++) {
+        for (int a = 0; a < N_k_a_mx; a++) {
+          sex_specific_offset_log_mx_matrix(a, y) = offset_log_mx(a, y, s);
+        }
+      }
+      spline_offset_log_mx.col(s) = B_a_mx * sex_specific_offset_log_mx_matrix * B_t_mx.transpose();
+
+      for (int y = 0; y < N_k_t_non_terminal_ax; y++) {
+        for (int a = 0; a < N_k_a_non_terminal_ax; a++) {
+          sex_specific_offset_bounded_logit_non_terminal_ax_matrix(a, y) = offset_bounded_logit_non_terminal_ax(a, y, s);
+        }
+      }
+      spline_offset_bounded_logit_non_terminal_ax.col(s) = B_a_non_terminal_ax * sex_specific_offset_bounded_logit_non_terminal_ax_matrix * B_t_non_terminal_ax.transpose();
+
+      for (int y = 0; y < N_k_t_terminal_ax; y++) {
+        sex_specific_offset_log_terminal_ax_matrix(0, y) = offset_log_terminal_ax(0, y, s);
+      }
+      spline_offset_log_terminal_ax.col(s) = sex_specific_offset_log_terminal_ax_matrix * B_t_terminal_ax.transpose();
     }
-    spline_offset_logit_survival.col(s) = B_a_survival * sex_specific_offset_logit_survival_matrix * B_t_survival.transpose();
 
     if (estimate_net_migration) {
       for (int y = 0; y < N_k_t_net_migration; y++) {
@@ -284,7 +417,14 @@ Type popReconstruct(objective_function<Type>* obj) {
   srb = exp(input_log_srb + spline_offset_log_srb);
   asfr = exp(input_log_asfr + spline_offset_log_asfr);
   baseline = exp(input_log_baseline + spline_offset_log_baseline);
-  survival = 1 / (1 + exp(-1 * (input_logit_survival + spline_offset_logit_survival)));
+  if (estimate_survival) {
+    survival = bounded_inv_logit(input_logit_survival + spline_offset_logit_survival, 0, 1);
+  } else {
+    mx = exp(input_log_mx + spline_offset_log_mx);
+    non_terminal_ax = bounded_inv_logit(input_bounded_logit_non_terminal_ax + spline_offset_bounded_logit_non_terminal_ax, 0, interval);
+    terminal_ax = exp(input_log_terminal_ax + spline_offset_log_terminal_ax);
+    survival = calculate_nSx(mx, non_terminal_ax, terminal_ax, interval, A, Y, sexes);
+  }
   if (estimate_net_migration) {
     net_migration = input_net_migration + spline_offset_net_migration;
   } else {
@@ -314,6 +454,9 @@ Type popReconstruct(objective_function<Type>* obj) {
   nll -= dinvGamma(sigma2_asfr, alpha_asfr, beta_asfr, true);
   nll -= dinvGamma(sigma2_population, alpha_population, beta_population, true);
   nll -= dinvGamma(sigma2_survival, alpha_survival, beta_survival, true);
+  nll -= dinvGamma(sigma2_mx, alpha_mx, beta_mx, true);
+  nll -= dinvGamma(sigma2_non_terminal_ax, alpha_non_terminal_ax, beta_non_terminal_ax, true);
+  nll -= dinvGamma(sigma2_terminal_ax, alpha_terminal_ax, beta_terminal_ax, true);
   nll -= dinvGamma(sigma2_net_migration, alpha_net_migration, beta_net_migration, true);
   nll -= dinvGamma(sigma2_immigration, alpha_immigration, beta_immigration, true);
   nll -= dinvGamma(sigma2_emigration, alpha_emigration, beta_emigration, true);
@@ -321,13 +464,16 @@ Type popReconstruct(objective_function<Type>* obj) {
   // Jacobian adjustment for variances (this is automatically handled by Stan)
   // See https://www.rpubs.com/kaz_yos/stan_jacobian for example
   // See https://github.com/colemonnahan/hmc_tests/blob/master/models/swallows/swallows.cpp for example
-  nll -= log_sigma2_srb + log_sigma2_asfr + log_sigma2_population + log_sigma2_survival + log_sigma2_net_migration + log_sigma2_immigration + log_sigma2_emigration;
+  nll -= log_sigma2_srb + log_sigma2_asfr + log_sigma2_population + log_sigma2_survival + log_sigma2_mx + log_sigma2_non_terminal_ax + log_sigma2_terminal_ax + log_sigma2_net_migration + log_sigma2_immigration + log_sigma2_emigration;
 
   // LEVEL 3 (model initial estimates ccmpp of ccmpp inputs)
   nll -= dnorm(vector<Type>(offset_log_srb), 0, sqrt(sigma2_srb), true).sum();
   nll -= dnorm(vector<Type>(offset_log_asfr), 0, sqrt(sigma2_asfr), true).sum();
   nll -= dnorm(vector<Type>(offset_log_baseline), 0, sqrt(sigma2_population), true).sum();
   nll -= dnorm(vector<Type>(offset_logit_survival), 0, sqrt(sigma2_survival), true).sum();
+  nll -= dnorm(vector<Type>(offset_log_mx), 0, sqrt(sigma2_mx), true).sum();
+  nll -= dnorm(vector<Type>(offset_bounded_logit_non_terminal_ax), 0, sqrt(sigma2_non_terminal_ax), true).sum();
+  nll -= dnorm(vector<Type>(offset_log_terminal_ax), 0, sqrt(sigma2_terminal_ax), true).sum();
   nll -= dnorm(vector<Type>(offset_net_migration), 0, sigma2_net_migration, true).sum();
   nll -= dnorm(vector<Type>(offset_log_immigration), 0, sigma2_immigration, true).sum();
   nll -= dnorm(vector<Type>(offset_log_emigration), 0, sigma2_emigration, true).sum();

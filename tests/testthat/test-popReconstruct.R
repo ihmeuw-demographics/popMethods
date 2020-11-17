@@ -1,3 +1,5 @@
+set.seed(1)
+
 settings = list(
   years = seq(1960, 2000, 5),
   sexes = c("female"),
@@ -231,6 +233,14 @@ testthat::test_that("sampling from popReconstruct (mx & ax) model prior works", 
     software = "stan",
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
+
+  test_fit(
+    inputs = new_inputs,
+    data = demCore::burkina_faso_data,
+    hyperparameters = new_hyperparameters,
+    settings = settings,
+    software = "tmb"
+  )
 })
 
 testthat::test_that("sampling from popReconstruct (mx) model prior works", {
@@ -258,5 +268,12 @@ testthat::test_that("sampling from popReconstruct (mx) model prior works", {
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
 
+  test_fit(
+    inputs = new_inputs,
+    data = demCore::burkina_faso_data,
+    hyperparameters = new_hyperparameters,
+    settings = new_settings,
+    software = "tmb"
+  )
 })
 
