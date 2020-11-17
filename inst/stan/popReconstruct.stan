@@ -290,17 +290,17 @@ transformed parameters {
   matrix[A, Y] spline_offset_log_emigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
 
   // untransformed ccmpp input parameters
-  matrix<lower = 0>[1, Y] srb;
-  matrix<lower = 0>[A_f, Y] asfr;
-  matrix<lower = 0>[A, 1] baseline[sexes];
-  matrix<lower = 0, upper = 1>[A + 1, Y] survival[sexes];
-  matrix<lower = 0>[A + 1, Y] mx[estimate_mx, sexes];
-  matrix<lower = 0, upper = interval>[A, Y] non_terminal_ax[estimate_non_terminal_ax, sexes];
-  matrix<lower = 0>[1, Y] terminal_ax[estimate_terminal_ax, sexes];
-  matrix<lower = 0>[A + 1, Y] ax[estimate_non_terminal_ax, sexes];
-  matrix[A, Y] net_migration[sexes];
-  matrix<lower = 0>[A, Y] immigration[estimate_immigration, sexes];
-  matrix<lower = 0>[A, Y] emigration[estimate_emigration, sexes];
+  matrix<lower = 0>[1, Y] srb = rep_matrix(0, 1, Y);
+  matrix<lower = 0>[A_f, Y] asfr = rep_matrix(0, A_f, Y);
+  matrix<lower = 0>[A, 1] baseline[sexes] = rep_array(rep_matrix(0, A, 1), sexes);
+  matrix<lower = 0, upper = 1>[A + 1, Y] survival[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
+  matrix<lower = 0>[A + 1, Y] mx[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
+  matrix<lower = 0, upper = interval>[A, Y] non_terminal_ax[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix<lower = 0>[1, Y] terminal_ax[sexes] = rep_array(rep_matrix(0, 1, Y), sexes);
+  matrix<lower = 0>[A + 1, Y] ax[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
+  matrix[A, Y] net_migration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix<lower = 0>[A, Y] immigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix<lower = 0>[A, Y] emigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
 
   // calculate spline offsets
   if (estimate_srb) {
@@ -344,18 +344,19 @@ transformed parameters {
     if (estimate_survival) {
       survival[s] = inv_logit(input_logit_survival[s] + spline_offset_logit_survival[s]);
     } else {
-      mx[estimate_mx, s] = exp(input_log_mx[s] + spline_offset_log_mx[s]);
-      non_terminal_ax[estimate_non_terminal_ax, s] = bounded_inv_logit(input_bounded_logit_non_terminal_ax[s] + spline_offset_bounded_logit_non_terminal_ax[s], 0, interval);
-      terminal_ax[estimate_terminal_ax, s] = exp(input_log_terminal_ax[s] + spline_offset_log_terminal_ax[s]);
-      ax[estimate_non_terminal_ax, s] = append_row(non_terminal_ax[estimate_non_terminal_ax, s], terminal_ax[estimate_terminal_ax, s]);
-      survival[s] = calculate_nSx(mx[estimate_mx, s], ax[estimate_non_terminal_ax, s], interval, A, Y);
+
+      mx[s] = exp(input_log_mx[s] + spline_offset_log_mx[s]);
+      non_terminal_ax[s] = bounded_inv_logit(input_bounded_logit_non_terminal_ax[s] + spline_offset_bounded_logit_non_terminal_ax[s], 0, interval);
+      terminal_ax[s] = exp(input_log_terminal_ax[s] + spline_offset_log_terminal_ax[s]);
+      ax[s] = append_row(non_terminal_ax[s], terminal_ax[s]);
+      survival[s] = calculate_nSx(mx[s], ax[s], interval, A, Y);
     }
     if (estimate_net_migration) {
       net_migration[s] = input_net_migration[s] + spline_offset_net_migration[s];
     } else {
-      immigration[estimate_immigration, s] = exp(input_log_immigration[s] + spline_offset_log_immigration[s]);
-      emigration[estimate_emigration, s] = exp(input_log_emigration[s] + spline_offset_log_emigration[s]);
-      net_migration[s] = immigration[estimate_immigration, s] - emigration[estimate_emigration, s];
+      immigration[s] = exp(input_log_immigration[s] + spline_offset_log_immigration[s]);
+      emigration[s] = exp(input_log_emigration[s] + spline_offset_log_emigration[s]);
+      net_migration[s] = immigration[s] - emigration[s];
     }
   }
 
