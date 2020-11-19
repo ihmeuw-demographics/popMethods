@@ -20,9 +20,8 @@ template<class Type>
 array<Type> bounded_inv_logit(array<Type> x, int domain_lower, int domain_upper) {
 
   array<Type> result(x.dim);
-  int scalar = (domain_upper - domain_lower) + domain_lower;
   result = exp(x) / (1 + exp(x));
-  result = result * scalar;
+  result = (result * (domain_upper - domain_lower)) + domain_lower;
   return result;
 }
 
