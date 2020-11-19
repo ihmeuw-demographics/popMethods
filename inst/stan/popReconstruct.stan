@@ -1,11 +1,9 @@
 functions {
   matrix bounded_inv_logit(matrix x, int domain_lower, int domain_upper) {
     matrix[rows(x), cols(x)] result;
-    real scalar;
 
     result = exp(x) ./ (1 + exp(x));
-    scalar = (domain_upper - domain_lower) + domain_lower;
-    result = result * scalar;
+    result = (result * (domain_upper - domain_lower)) + domain_lower;
     return(result);
   }
 

@@ -519,6 +519,7 @@ popReconstruct_fit <- function(inputs,
       map <- map[names(map) %in% names(input_parameters)]
     }
 
+    input_data$estimate_survival <- "survival" %in% settings$estimated_parameters
     input_data$estimate_net_migration <- "net_migration" %in% settings$estimated_parameters
 
     # make objective function
