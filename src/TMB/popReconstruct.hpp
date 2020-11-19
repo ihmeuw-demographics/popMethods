@@ -360,6 +360,7 @@ Type popReconstruct(objective_function<Type>* obj) {
     }
     spline_offset_log_baseline.col(s) = B_a_baseline * sex_specific_offset_log_baseline_matrix;
 
+    // calculate either the survival spline offsets or mx & ax spline offsets
     if (estimate_survival) {
       for (int y = 0; y < N_k_t_survival; y++) {
         for (int a = 0; a < N_k_a_survival; a++) {
@@ -388,6 +389,7 @@ Type popReconstruct(objective_function<Type>* obj) {
       spline_offset_log_terminal_ax.col(s) = sex_specific_offset_log_terminal_ax_matrix * B_t_terminal_ax.transpose();
     }
 
+    // calculate either the net migration spline offsets or immigration & emigration spline offsets
     if (estimate_net_migration) {
       for (int y = 0; y < N_k_t_net_migration; y++) {
         for (int a = 0; a < N_k_a_net_migration; a++) {
