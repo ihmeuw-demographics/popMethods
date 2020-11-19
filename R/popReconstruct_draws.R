@@ -117,7 +117,7 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
       # add on id variables to draws
       component_draws[, parameter := gsub(paste0("^", param, "|\\[|\\]"), "", parameter)]
       optional_params <- c("mx", "non_terminal_ax", "terminal_ax", "immigration", "emigration")
-      component_draws[, c(if (grepl("^offset", param) | param %in% optional_params) "estimate",
+      component_draws[, c(if (grepl("^offset", param)) "estimate",
                           if (!is.null(sexes)) "sex_index", "age_index", "year_index") :=
                         data.table::tstrsplit(parameter, split = ",")]
       assertthat::assert_that(
