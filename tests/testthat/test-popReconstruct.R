@@ -211,69 +211,79 @@ new_inputs$ax <- lt[, .SD, .SDcols = c(id_cols, "ax")]
 setnames(new_inputs$ax, "ax", "value")
 new_inputs$survival <- NULL
 
-testthat::test_that("sampling from popReconstruct (mx & ax) model prior works", {
-  new_hyperparameters <- copy(hyperparameters)
-  new_hyperparameters$mx <- hyperparameters$survival
-  new_hyperparameters$survival <- NULL
-  new_hyperparameters$mx$beta <- 0.000109
-  new_hyperparameters$non_terminal_ax <- new_hyperparameters$mx
-  new_hyperparameters$terminal_ax <- new_hyperparameters$mx
+hyperparameters_mx_ax <- copy(hyperparameters)
+hyperparameters_mx_ax$mx <- hyperparameters$survival
+hyperparameters_mx_ax$survival <- NULL
+hyperparameters_mx_ax$mx$beta <- 0.000109
+hyperparameters_mx_ax$non_terminal_ax <- hyperparameters_mx_ax$mx
+hyperparameters_mx_ax$terminal_ax <- hyperparameters_mx_ax$mx
 
-  test_prior(
-    inputs = new_inputs,
-    hyperparameters = new_hyperparameters,
-    settings = settings
-  )
 
+testthat::test_that("the popReconstruct (mx & ax) model works in stan", {
   test_fit(
     inputs = new_inputs,
     data = demCore::burkina_faso_data,
-    hyperparameters = new_hyperparameters,
+    hyperparameters = hyperparameters_mx_ax,
     settings = settings,
     software = "stan",
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
+})
 
+testthat::test_that("the popReconstruct model (mx & ax) works in tmb", {
   test_fit(
     inputs = new_inputs,
     data = demCore::burkina_faso_data,
-    hyperparameters = new_hyperparameters,
+    hyperparameters = hyperparameters_mx_ax,
     settings = settings,
+    software = "tmb"
+  )
+})
+
+testthat::test_that("sampling from popReconstruct (mx & ax) model prior works", {
+  test_prior(
+    inputs = new_inputs,
+    hyperparameters = hyperparameters_mx_ax,
+    settings = settings
+  )
+})
+
+# Test popReconstruct with mx ---------------------------------------------
+
+hyperparameters_mx <- copy(hyperparameters)
+hyperparameters_mx$mx <- hyperparameters$survival
+hyperparameters_mx$mx$beta <- 0.000109
+hyperparameters_mx$survival <- NULL
+
+# don't estimate ax
+settings_mx <- copy(settings)
+settings_mx$fixed_parameters <- c("non_terminal_ax", "terminal_ax")
+
+testthat::test_that("the popReconstruct (mx) model works in stan", {
+  test_fit(
+    inputs = new_inputs,
+    data = demCore::burkina_faso_data,
+    hyperparameters = hyperparameters_mx,
+    settings = settings_mx,
+    software = "stan",
+    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
+  )
+})
+
+testthat::test_that("the popReconstruct model (mx) works in tmb", {
+  test_fit(
+    inputs = new_inputs,
+    data = demCore::burkina_faso_data,
+    hyperparameters = hyperparameters_mx,
+    settings = settings_mx,
     software = "tmb"
   )
 })
 
 testthat::test_that("sampling from popReconstruct (mx) model prior works", {
-  new_hyperparameters <- copy(hyperparameters)
-  new_hyperparameters$mx <- hyperparameters$survival
-  new_hyperparameters$mx$beta <- 0.000109
-  new_hyperparameters$survival <- NULL
-
-  # don't estimate ax
-  new_settings <- copy(settings)
-  new_settings$fixed_parameters <- c("non_terminal_ax", "terminal_ax")
-
   test_prior(
     inputs = new_inputs,
-    hyperparameters = new_hyperparameters,
-    settings = new_settings
-  )
-
-  test_fit(
-    inputs = new_inputs,
-    data = demCore::burkina_faso_data,
-    hyperparameters = new_hyperparameters,
-    settings = new_settings,
-    software = "stan",
-    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
-  )
-
-  test_fit(
-    inputs = new_inputs,
-    data = demCore::burkina_faso_data,
-    hyperparameters = new_hyperparameters,
-    settings = new_settings,
-    software = "tmb"
+    hyperparameters = hyperparameters_mx,
+    settings = settings_mx
   )
 })
-
