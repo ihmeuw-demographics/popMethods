@@ -24,6 +24,48 @@ These modifications to the original popReconstruct have been developed while imp
 In `vignette("popReconstruct", package = "popMethods")` the original popReconstruct model is explained and written out.
 Please read this first and become familiar with the basics of the `demCore::ccmpp` and `popMethods::popReconstruct_fit` functions.
 
+# Estimate mx and ax
+
+The survivorship ratio (nSx) is one of the components estimated in the original popReconstruct model.
+nSx can be calculated using life tables constructed from basic lifetable parameters.
+`demCore::ccmpp` has been made flexible enough to accept either just nSx or 2 out of 3 of 'mx', 'ax', or 'qx' inputs.
+`popMethods::popReconstruct_fit` also can accept either `nSx` or, `mx` and `ax` inputs.
+This flexibility makes it easier to calculate deaths and life tables from the posterior distribution.
+
+'ax' values have known constraints that must be applied.
+For the terminal age group, 'ax' can be any positive value greater than or equal to 0, which is why it is log transformed.
+For all non-terminal age groups, 'ax' is a value between 0 and the size of the age intervals, which is why it is transformed with the logit function and scaled to be between 0 and the age_interval.
+
+**Level 1** (likelihood for census counts):
+$$\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)$$
+**Level 2** (map from ccmpp input parameters to projected population counts):
+$$n_{l,a,t} = \text{CCMPP}(srb_t, f_{a,t}, n_{l,a,t_0}, s_{l,a,t}, g_{l,a,t})$$
+**Level 2.1** (calculate survivorship ratio):
+$$s_{l,a,t} = F(mx_{l,a,t}, ax_{l,a,t})$$
+**Level 3.1** (calculate the estimated ccmpp inputs):
+$$\begin{aligned} & \ \ \vdots \\
+\text{log} \ mx_{l,a,t} &= \text{log} \ mx^*_{l,a,t} + \delta_{mx_{l,a,t}} \\
+\text{logit[0, age_interval]} \ ax_{l,a,t} &= \text{logit[0, age_interval]} \ ax^*_{l,a,t} + \delta_{ax_{l,a,t}} \text{; if } A = \text{not terminal age} \\
+\text{log} \ ax_{l,a,t} &= \text{log} \ ax^*_{l,a,t} + \delta_{ax_{l,a,t}} \text{; if } A = \text{terminal age}
+\end{aligned}$$
+
+**Level 3.2** (priors for ccmpp input offset parameters):
+$$\begin{aligned} & \ \ \vdots \\
+\delta_{mx_{l,a,t}} &\sim \text{Normal}(0, \sigma^2_{mx}) \\
+\delta_{ax_{l,a,t}} &\sim \text{Normal}(0, \sigma^2_{ax_{\text{non_terminal}}}) \text{; if } A = \text{not terminal age} \\
+\delta_{ax_{l,a,t}} &\sim \text{Normal}(0, \sigma^2_{ax_{\text{terminal}}}) \text{; if } A = \text{terminal age}
+\end{aligned}$$
+
+**Level 4** (informative prior distributions representing measurement error):
+$$\begin{aligned} \sigma^2_{\nu} &\sim \text{InverseGamma}(\alpha^*_{\nu}, \beta^*_{\nu}) \\
+\nu &\in \{{srb, f, n, mx, ax_{\text{non_terminal}}, ax_{\text{terminal}}, g}\} \end{aligned}$$
+
+**where**:
+
+$$\begin{aligned} & \ \ \vdots \\
+mx &= \text{mortality rate} \\
+ax &= \text{average number of years lived within the age interval by those dying in the interval} \end{aligned}$$
+
 # Estimate Immigration and Emigration
 
 In the original popReconstruct model, net migration proportion is one of the components estimated.
@@ -36,7 +78,9 @@ Below, the net migration (`g`) inputs and parameters have been replaced by immig
 **Level 1** (likelihood for census counts):
 $$\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)$$
 **Level 2** (map from ccmpp input parameters to projected population counts):
-$$n_{l,a,t} = \text{CCMPP}(srb_t, f_{a,t}, n_{l,a,t_0}, s_{l,a,t}, i_{l,a,t}, e_{l,a,t})$$
+$$n_{l,a,t} = \text{CCMPP}(srb_t, f_{a,t}, n_{l,a,t_0}, s_{l,a,t}, g_{l,a,t})$$
+**Level 2.1** (calculate net migration):
+$$g_{l,a,t} = i_{l,a,t} - e_{l,a,t}$$
 **Level 3.1** (calculate the estimated ccmpp inputs):
 $$\begin{aligned} & \ \ \vdots \\
 \text{log} \ i_{l,a,t} &= \text{log} \ i^*_{l,a,t} + \delta_{i_{l,a,t}} \\
