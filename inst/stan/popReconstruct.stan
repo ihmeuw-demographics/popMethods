@@ -1,4 +1,12 @@
 functions {
+  matrix bounded_inv_logit(matrix x, int domain_lower, int domain_upper) {
+    matrix[rows(x), cols(x)] result;
+
+    result = exp(x) ./ (1 + exp(x));
+    result = (result * (domain_upper - domain_lower)) + domain_lower;
+    return(result);
+  }
+
   matrix make_leslie_matrix(real srb, vector asfr, vector survival, int interval,
                             int A, int A_f, int A_f_offset, int female) {
 
@@ -62,6 +70,52 @@ functions {
     return(population);
   }
 
+  matrix calculate_nSx(matrix mx, matrix ax, int interval, int A, int Y) {
+    // See demCore for equations https://github.com/ihmeuw-demographics/demCore
+    matrix[A + 1, Y] nSx;
+
+    for (y in 1:Y) {
+      vector[A + 1] qx;
+      vector[A + 1] px;
+      vector[A + 1] lx;
+      vector[A + 1] dx;
+      vector[A + 1] nLx;
+      vector[A + 1] Tx;
+
+      // calculate qx
+      qx = (interval * mx[, y]) ./ (1 + ((interval - ax[, y]) .* mx[, y]));
+      qx[A + 1] = 1;
+
+      // calculate px
+      px = 1 - qx;
+
+      // calculate lx
+      lx[1] = 1;
+      for (a in 2:(A + 1)) {
+        lx[a] = lx[a - 1] * px[a - 1];
+      }
+
+      // calculate dx
+      dx[1:A] = lx[1:A] - lx[2:(A + 1)];
+      dx[A + 1] = lx[A + 1];
+
+      // calculate nLx
+      nLx[1:A] = (interval * lx[2:(A + 1)]) + (ax[1:A, y] .* dx[1:A]);
+      nLx[A + 1] = lx[A + 1] / mx[A + 1, y];
+
+      // calculate Tx
+      for (a in 1:(A + 1)) {
+        Tx[a] = sum(nLx[a:(A + 1)]);
+      }
+
+      // calculate Sx
+      nSx[1, y] = nLx[1] / (interval * lx[1]);
+      nSx[2:A, y] = nLx[2:A] ./ nLx[1:(A - 1)];
+      nSx[A + 1, y] = Tx[A + 1] / Tx[A];
+    }
+    return(nSx);
+  }
+
   real[] aggregate(matrix[] population, int[, ] input_pop_year_index,
                    int[, ] input_pop_age_index, int[, ] input_pop_sex_index,
                    int N_pop) {
@@ -97,6 +151,9 @@ data {
   int<lower = 0, upper = 1> estimate_asfr;
   int<lower = 0, upper = 1> estimate_baseline;
   int<lower = 0, upper = 1> estimate_survival;
+  int<lower = 0, upper = 1> estimate_mx;
+  int<lower = 0, upper = 1> estimate_non_terminal_ax;
+  int<lower = 0, upper = 1> estimate_terminal_ax;
   int<lower = 0, upper = 1> estimate_net_migration;
   int<lower = 0, upper = 1> estimate_immigration;
   int<lower = 0, upper = 1> estimate_emigration;
@@ -110,6 +167,12 @@ data {
   real beta_population;
   real alpha_survival;
   real beta_survival;
+  real alpha_mx;
+  real beta_mx;
+  real alpha_non_terminal_ax;
+  real beta_non_terminal_ax;
+  real alpha_terminal_ax;
+  real beta_terminal_ax;
   real alpha_net_migration;
   real beta_net_migration;
   real alpha_immigration;
@@ -122,6 +185,9 @@ data {
   matrix[A_f, Y] input_log_asfr; // input age-specific fertility rates
   matrix[A, 1] input_log_baseline[sexes]; // input baseline populations
   matrix[A + 1, Y] input_logit_survival[sexes]; // input survival proportions
+  matrix[A + 1, Y] input_log_mx[sexes]; // input mortality rate
+  matrix[A, Y] input_bounded_logit_non_terminal_ax[sexes]; // input ax for non-terminal age groups
+  matrix[1, Y] input_log_terminal_ax[sexes]; // input ax for terminal age group
   matrix[A, Y] input_net_migration[sexes]; // input net migration proportions
   matrix[A, Y] input_log_immigration[sexes]; // input immigration proportions
   matrix[A, Y] input_log_emigration[sexes]; // input emigration proportions
@@ -142,6 +208,19 @@ data {
   matrix[Y, N_k_t_survival] B_t_survival;
   int N_k_a_survival;
   matrix[A + 1, N_k_a_survival] B_a_survival;
+
+  int N_k_t_mx;
+  matrix[Y, N_k_t_mx] B_t_mx;
+  int N_k_a_mx;
+  matrix[A + 1, N_k_a_mx] B_a_mx;
+
+  int N_k_t_non_terminal_ax;
+  matrix[Y, N_k_t_non_terminal_ax] B_t_non_terminal_ax;
+  int N_k_a_non_terminal_ax;
+  matrix[A, N_k_a_non_terminal_ax] B_a_non_terminal_ax;
+
+  int N_k_t_terminal_ax;
+  matrix[Y, N_k_t_terminal_ax] B_t_terminal_ax;
 
   int N_k_t_net_migration;
   matrix[Y, N_k_t_net_migration] B_t_net_migration;
@@ -172,6 +251,9 @@ parameters {
   real<lower = 0> sigma2_asfr[estimate_asfr];
   real<lower = 0> sigma2_population;
   real<lower = 0> sigma2_survival[estimate_survival];
+  real<lower = 0> sigma2_mx[estimate_mx];
+  real<lower = 0> sigma2_non_terminal_ax[estimate_non_terminal_ax];
+  real<lower = 0> sigma2_terminal_ax[estimate_terminal_ax];
   real<lower = 0> sigma2_net_migration[estimate_net_migration];
   real<lower = 0> sigma2_immigration[estimate_immigration];
   real<lower = 0> sigma2_emigration[estimate_emigration];
@@ -181,6 +263,9 @@ parameters {
   matrix[N_k_a_asfr, N_k_t_asfr] offset_log_asfr[estimate_asfr];
   matrix[N_k_a_baseline, 1] offset_log_baseline[estimate_baseline, sexes];
   matrix[N_k_a_survival, N_k_t_survival] offset_logit_survival[estimate_survival, sexes];
+  matrix[N_k_a_mx, N_k_t_mx] offset_log_mx[estimate_mx, sexes];
+  matrix[N_k_a_non_terminal_ax, N_k_t_non_terminal_ax] offset_bounded_logit_non_terminal_ax[estimate_non_terminal_ax, sexes];
+  matrix[1, N_k_t_terminal_ax] offset_log_terminal_ax[estimate_terminal_ax, sexes];
   matrix[N_k_a_net_migration, N_k_t_net_migration] offset_net_migration[estimate_net_migration, sexes];
   matrix[N_k_a_immigration, N_k_t_immigration] offset_log_immigration[estimate_immigration, sexes];
   matrix[N_k_a_emigration, N_k_t_emigration] offset_log_emigration[estimate_emigration, sexes];
@@ -195,18 +280,25 @@ transformed parameters {
   matrix[A_f, Y] spline_offset_log_asfr = rep_matrix(0, A_f, Y);
   matrix[A, 1] spline_offset_log_baseline[sexes] = rep_array(rep_matrix(0, A, 1), sexes);
   matrix[A + 1, Y] spline_offset_logit_survival[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
+  matrix[A + 1, Y] spline_offset_log_mx[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
+  matrix[A, Y] spline_offset_bounded_logit_non_terminal_ax[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix[1, Y] spline_offset_log_terminal_ax[sexes] = rep_array(rep_matrix(0, 1, Y), sexes);
   matrix[A, Y] spline_offset_net_migration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
   matrix[A, Y] spline_offset_log_immigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
   matrix[A, Y] spline_offset_log_emigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
 
   // untransformed ccmpp input parameters
-  matrix<lower = 0>[1, Y] srb;
-  matrix<lower = 0>[A_f, Y] asfr;
-  matrix<lower = 0>[A, 1] baseline[sexes];
-  matrix<lower = 0, upper = 1>[A + 1, Y] survival[sexes];
-  matrix[A, Y] net_migration[sexes];
-  matrix<lower = 0>[A, Y] immigration[estimate_immigration, sexes];
-  matrix<lower = 0>[A, Y] emigration[estimate_emigration, sexes];
+  matrix<lower = 0>[1, Y] srb = rep_matrix(0, 1, Y);
+  matrix<lower = 0>[A_f, Y] asfr = rep_matrix(0, A_f, Y);
+  matrix<lower = 0>[A, 1] baseline[sexes] = rep_array(rep_matrix(0, A, 1), sexes);
+  matrix<lower = 0, upper = 1>[A + 1, Y] survival[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
+  matrix<lower = 0>[A + 1, Y] mx[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
+  matrix<lower = 0, upper = interval>[A, Y] non_terminal_ax[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix<lower = 0>[1, Y] terminal_ax[sexes] = rep_array(rep_matrix(0, 1, Y), sexes);
+  matrix<lower = 0>[A + 1, Y] ax[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
+  matrix[A, Y] net_migration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix<lower = 0>[A, Y] immigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix<lower = 0>[A, Y] emigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
 
   // calculate spline offsets
   if (estimate_srb) {
@@ -221,6 +313,15 @@ transformed parameters {
     }
     if (estimate_survival) {
       spline_offset_logit_survival[s] = B_a_survival * offset_logit_survival[1, s] * B_t_survival';
+    }
+    if (estimate_mx) {
+      spline_offset_log_mx[s] = B_a_mx * offset_log_mx[1, s] * B_t_mx';
+    }
+    if (estimate_non_terminal_ax) {
+      spline_offset_bounded_logit_non_terminal_ax[s] = B_a_non_terminal_ax * offset_bounded_logit_non_terminal_ax[1, s] * B_t_non_terminal_ax';
+    }
+    if (estimate_terminal_ax) {
+      spline_offset_log_terminal_ax[s] = offset_log_terminal_ax[1, s] * B_t_terminal_ax';
     }
     if (estimate_net_migration) {
       spline_offset_net_migration[s] = B_a_net_migration * offset_net_migration[1, s] * B_t_net_migration';
@@ -238,13 +339,22 @@ transformed parameters {
   asfr = exp(input_log_asfr + spline_offset_log_asfr);
   for (s in 1:sexes) {
     baseline[s] = exp(input_log_baseline[s] + spline_offset_log_baseline[s]);
-    survival[s] = inv_logit(input_logit_survival[s] + spline_offset_logit_survival[s]);
+    if (estimate_survival) {
+      survival[s] = inv_logit(input_logit_survival[s] + spline_offset_logit_survival[s]);
+    } else {
+
+      mx[s] = exp(input_log_mx[s] + spline_offset_log_mx[s]);
+      non_terminal_ax[s] = bounded_inv_logit(input_bounded_logit_non_terminal_ax[s] + spline_offset_bounded_logit_non_terminal_ax[s], 0, interval);
+      terminal_ax[s] = exp(input_log_terminal_ax[s] + spline_offset_log_terminal_ax[s]);
+      ax[s] = append_row(non_terminal_ax[s], terminal_ax[s]);
+      survival[s] = calculate_nSx(mx[s], ax[s], interval, A, Y);
+    }
     if (estimate_net_migration) {
       net_migration[s] = input_net_migration[s] + spline_offset_net_migration[s];
     } else {
-      immigration[estimate_immigration, s] = exp(input_log_immigration[s] + spline_offset_log_immigration[s]);
-      emigration[estimate_emigration, s] = exp(input_log_emigration[s] + spline_offset_log_emigration[s]);
-      net_migration[s] = immigration[estimate_immigration, s] - emigration[estimate_emigration, s];
+      immigration[s] = exp(input_log_immigration[s] + spline_offset_log_immigration[s]);
+      emigration[s] = exp(input_log_emigration[s] + spline_offset_log_emigration[s]);
+      net_migration[s] = immigration[s] - emigration[s];
     }
   }
 
@@ -269,6 +379,15 @@ model {
   if (estimate_survival) {
     sigma2_survival ~ inv_gamma(alpha_survival, beta_survival);
   }
+  if (estimate_mx) {
+    sigma2_mx ~ inv_gamma(alpha_mx, beta_mx);
+  }
+  if (estimate_non_terminal_ax) {
+    sigma2_non_terminal_ax ~ inv_gamma(alpha_non_terminal_ax, beta_non_terminal_ax);
+  }
+  if (estimate_terminal_ax) {
+    sigma2_terminal_ax ~ inv_gamma(alpha_terminal_ax, beta_terminal_ax);
+  }
   if (estimate_net_migration) {
     sigma2_net_migration ~ inv_gamma(alpha_net_migration, beta_net_migration);
   }
@@ -278,47 +397,68 @@ model {
   if (estimate_emigration) {
     sigma2_emigration ~ inv_gamma(alpha_emigration, beta_emigration);
   }
-  // LEVEL 3 (model initial estimates ccmpp of ccmpp inputs)
 
-  for (y in 1:N_k_t_srb) {
-    if (estimate_srb) {
+  // LEVEL 3 (model initial estimates ccmpp of ccmpp inputs)
+  if (estimate_srb) {
+    for (y in 1:N_k_t_srb) {
       offset_log_srb[1, 1, y] ~ normal(0, sqrt(sigma2_srb[1]));
     }
   }
-  for (y in 1:N_k_t_asfr) {
-    if (estimate_asfr) {
+  if (estimate_asfr) {
+    for (y in 1:N_k_t_asfr) {
       offset_log_asfr[1, , y] ~ normal(0, sqrt(sigma2_asfr[1]));
     }
   }
-  for (s in 1:sexes) {
-    if (estimate_baseline) {
+  if (estimate_baseline) {
+    for (s in 1:sexes) {
       offset_log_baseline[1, s, , 1] ~ normal(0, sqrt(sigma2_population));
     }
   }
-  for (y in 1:N_k_t_survival) {
-    for (s in 1:sexes) {
-      if (estimate_survival) {
+  if (estimate_survival) {
+    for (y in 1:N_k_t_survival) {
+      for (s in 1:sexes) {
         offset_logit_survival[1, s, , y] ~ normal(0, sqrt(sigma2_survival[1]));
       }
     }
   }
-  for (y in 1:N_k_t_net_migration) {
-    for (s in 1:sexes) {
-      if (estimate_net_migration) {
+  if (estimate_mx) {
+    for (y in 1:N_k_t_mx) {
+      for (s in 1:sexes) {
+        offset_log_mx[1, s, , y] ~ normal(0, sqrt(sigma2_mx[1]));
+      }
+    }
+  }
+  if (estimate_non_terminal_ax) {
+    for (y in 1:N_k_t_non_terminal_ax) {
+      for (s in 1:sexes) {
+        offset_bounded_logit_non_terminal_ax[1, s, , y] ~ normal(0, sqrt(sigma2_non_terminal_ax[1]));
+      }
+    }
+  }
+  if (estimate_terminal_ax) {
+    for (y in 1:N_k_t_terminal_ax) {
+      for (s in 1:sexes) {
+        offset_log_terminal_ax[1, s, , y] ~ normal(0, sqrt(sigma2_terminal_ax[1]));
+      }
+    }
+  }
+  if (estimate_net_migration) {
+    for (y in 1:N_k_t_net_migration) {
+      for (s in 1:sexes) {
         offset_net_migration[1, s, , y] ~ normal(0, sqrt(sigma2_net_migration[1]));
       }
     }
   }
-  for (y in 1:N_k_t_immigration) {
-    for (s in 1:sexes) {
-      if (estimate_immigration) {
+  if (estimate_immigration) {
+    for (y in 1:N_k_t_immigration) {
+      for (s in 1:sexes) {
         offset_log_immigration[1, s, , y] ~ normal(0, sqrt(sigma2_immigration[1]));
       }
     }
   }
-  for (y in 1:N_k_t_emigration) {
-    for (s in 1:sexes) {
-      if (estimate_emigration) {
+  if (estimate_emigration) {
+    for (y in 1:N_k_t_emigration) {
+      for (s in 1:sexes) {
         offset_log_emigration[1, s, , y] ~ normal(0, sqrt(sigma2_emigration[1]));
       }
     }

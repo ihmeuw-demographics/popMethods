@@ -11,9 +11,10 @@ extract_stan_draws(fit, inputs, settings, detailed_settings)
 Model fit object returned by \code{\link[=popReconstruct_fit]{popReconstruct_fit()}}.}
 
 \item{inputs}{[\code{list()}]\cr
-[\code{data.table()}] for each ccmpp input. Requires 'srb', 'asfr', 'baseline',
-and 'survival'; and migration estimates provided as just 'net_migration' or
-both 'immigration' and 'emigration'. See \strong{Section: Inputs} for more
+[\code{data.table()}] for each ccmpp input. Requires 'srb', 'asfr', 'baseline';
+mortality estimates provided as just 'survival' or two of 'mx', 'ax', and
+'qx'; and migration estimates provided as just 'net_migration' or both
+'immigration' and 'emigration'. See \strong{Section: Inputs} for more
 information on each of the required inputs.}
 
 \item{settings}{[\code{list()}]\cr

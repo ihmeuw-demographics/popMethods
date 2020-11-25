@@ -23,7 +23,7 @@ Suggests:
     bayesplot,
     ggplot2,
     demViz
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 VignetteBuilder: knitr
 Language: en-US
 Imports: 

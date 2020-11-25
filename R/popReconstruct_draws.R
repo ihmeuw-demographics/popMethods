@@ -25,6 +25,14 @@ popReconstruct_posterior_draws <- function(fit,
 
   demCore:::validate_ccmpp_inputs(inputs, settings, value_col)
 
+  # separate ax input into terminal and non-terminal age groups
+  if ("ax" %in% names(inputs)) {
+    inputs <- copy(inputs)
+    inputs$non_terminal_ax <- inputs$ax[!is.infinite(age_end)]
+    inputs$terminal_ax <- inputs$ax[is.infinite(age_end)]
+    inputs$ax <- NULL
+  }
+
   # add optional settings needed for popReconstruct
   settings <- copy(settings)
   settings <- create_optional_settings(settings, inputs)
@@ -108,7 +116,8 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
     if (nrow(component_draws) > 0) {
       # add on id variables to draws
       component_draws[, parameter := gsub(paste0("^", param, "|\\[|\\]"), "", parameter)]
-      component_draws[, c(if (grepl("^offset", param) | param %in% c("immigration", "emigration")) "estimate",
+      optional_params <- c("mx", "non_terminal_ax", "terminal_ax", "immigration", "emigration")
+      component_draws[, c(if (grepl("^offset", param)) "estimate",
                           if (!is.null(sexes)) "sex_index", "age_index", "year_index") :=
                         data.table::tstrsplit(parameter, split = ",")]
       assertthat::assert_that(
@@ -166,11 +175,18 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
     }
     # add on the 'age_end' column
     if ("age_start" %in% id_cols) {
+      if (comp == "asfr") {
+        right_most_age <- max(settings$ages_asfr) + settings$int
+      } else if (comp == "non_terminal_ax") {
+        right_most_age <- max(settings$ages_mortality)
+      } else {
+        right_most_age <- Inf
+      }
       hierarchyUtils::gen_end(
         dt = component_draws,
         id_cols = non_end_id_cols,
         col_stem = "age",
-        right_most_endpoint = ifelse(comp == "asfr", max(ages) + int, Inf)
+        right_most_endpoint = right_most_age
       )
     }
 
@@ -221,6 +237,17 @@ extract_stan_draws <- function(fit, inputs, settings, detailed_settings) {
     return(comp_draws)
   })
   names(ccmpp_input_draws) <- names(inputs)
+
+  # combine together ax draws
+  if (all(c("non_terminal_ax", "terminal_ax") %in% names(ccmpp_input_draws))) {
+    ccmpp_input_draws[["ax"]] <- rbind(
+      ccmpp_input_draws[["non_terminal_ax"]],
+      ccmpp_input_draws[["terminal_ax"]],
+      use.names = T
+    )
+    ccmpp_input_draws[["non_terminal_ax"]] <- NULL
+    ccmpp_input_draws[["terminal_ax"]] <- NULL
+  }
 
   # extract projected population parameters
   population_draws <- format_draws(
@@ -360,11 +387,18 @@ extract_tmb_draws <- function(fit, inputs, value_col, settings, detailed_setting
     }
     # add on the 'age_end' column
     if ("age_start" %in% id_cols) {
+      if (comp == "asfr") {
+        right_most_age <- max(settings$ages_asfr) + settings$int
+      } else if (comp == "non_terminal_ax") {
+        right_most_age <- max(settings$ages_mortality)
+      } else {
+        right_most_age <- Inf
+      }
       hierarchyUtils::gen_end(
         dt = component_draws,
         id_cols = non_end_id_cols,
         col_stem = "age",
-        right_most_endpoint = ifelse(comp == "asfr", max(ages) + int, Inf)
+        right_most_endpoint = right_most_age
       )
     }
 
@@ -440,6 +474,14 @@ popReconstruct_prior_draws <- function(inputs,
   # Validate arguments ------------------------------------------------------
 
   demCore:::validate_ccmpp_inputs(inputs, settings, value_col)
+
+  # separate ax input into terminal and non-terminal age groups
+  if ("ax" %in% names(inputs)) {
+    inputs <- copy(inputs)
+    inputs$non_terminal_ax <- inputs$ax[!is.infinite(age_end)]
+    inputs$terminal_ax <- inputs$ax[is.infinite(age_end)]
+    inputs$ax <- NULL
+  }
 
   # check `chunk_size` argument
   assertthat::assert_that(
@@ -535,13 +577,18 @@ popReconstruct_prior_draws <- function(inputs,
       }
       # add on the 'age_end' column
       if ("age_start" %in% id_cols) {
+        if (comp == "asfr") {
+          right_most_age <- max(settings$ages_asfr) + settings$int
+        } else if (comp == "non_terminal_ax") {
+          right_most_age <- max(settings$ages_mortality)
+        } else {
+          right_most_age <- Inf
+        }
         hierarchyUtils::gen_end(
           dt = offset_component,
           id_cols = c(id_cols[!grepl("_end$", id_cols)], "original_draw"),
           col_stem = "age",
-          right_most_endpoint = ifelse(comp == "asfr",
-                                       max(settings$ages_asfr) + settings$int,
-                                       Inf)
+          right_most_endpoint = right_most_age
         )
       }
       return(offset_component)
@@ -738,7 +785,7 @@ predict_spline_offset <- function(dt, B_t = NULL, B_a = NULL,
                  ifelse(is.null(B_t), ".", "year_start"))
   offset_matrix <- dcast(dt, formula = stats::as.formula(form),
                          value.var = "value")
-  offset_matrix[, ifelse(is.null(ages), ".", "age_start") := NULL]
+  offset_matrix[, ifelse(is.null(B_a), ".", "age_start") := NULL]
   offset_matrix <- as.matrix(offset_matrix)
 
   # calculate spline offset matrix
@@ -754,7 +801,7 @@ predict_spline_offset <- function(dt, B_t = NULL, B_a = NULL,
   if (!is.null(ages)) {
     rownames(spline_offset_matrix) <- ages
   } else {
-    rownames(spline_offset_matrix) <- 0
+    rownames(spline_offset_matrix) <- "all"
   }
 
   # reformat the spline offset matrix from matrix to data.table
@@ -788,15 +835,18 @@ calculate_ccmpp_input_draws <- function(spline_offset_draws,
                                         value_col) {
 
   ccmpp_input_draws <- lapply(names(spline_offset_draws), function(comp) {
-    transformation <- detailed_settings[[comp]][["transformation"]]
-    inverse_transformation <- detailed_settings[[comp]][["inverse_transformation"]]
 
     spline_offset <- copy(spline_offset_draws[[comp]])
     setnames(spline_offset, "value", "spline_offset")
 
     input <- copy(inputs[[comp]])
     data.table::setnames(input, value_col, "initial")
-    if (!is.null(transformation)) input[, initial := transformation(initial)]
+    transform_dt(
+      dt = input,
+      value_col = "initial",
+      transformation = detailed_settings[[comp]][["transformation"]],
+      transformation_arguments = detailed_settings[[comp]][["transformation_arguments"]]
+    )
 
     input_draws <- merge(
       x = spline_offset,
@@ -805,15 +855,30 @@ calculate_ccmpp_input_draws <- function(spline_offset_draws,
       by = setdiff(names(input), "initial")
     )
     input_draws[, value := spline_offset + initial]
-    if (!is.null(inverse_transformation)) {
-      input_draws[, value := inverse_transformation(value)]
-    }
+    transform_dt(
+      dt = input_draws,
+      value_col = "value",
+      transformation = detailed_settings[[comp]][["inverse_transformation"]],
+      transformation_arguments = detailed_settings[[comp]][["transformation_arguments"]]
+    )
 
     input_draws[, c("spline_offset", "initial") := NULL]
     data.table::setkeyv(input_draws, setdiff(names(input_draws), "value"))
     return(input_draws)
   })
   names(ccmpp_input_draws) <- names(spline_offset_draws)
+
+  # combine together ax draws
+  if (all(c("non_terminal_ax", "terminal_ax") %in% names(ccmpp_input_draws))) {
+    ccmpp_input_draws[["ax"]] <- rbind(
+      ccmpp_input_draws[["non_terminal_ax"]],
+      ccmpp_input_draws[["terminal_ax"]],
+      use.names = T
+    )
+    ccmpp_input_draws[["non_terminal_ax"]] <- NULL
+    ccmpp_input_draws[["terminal_ax"]] <- NULL
+  }
+
   return(ccmpp_input_draws)
 }
 
@@ -838,7 +903,9 @@ ccmpp_draws <- function(input_draws,
 
     # get one draw of each of the input components
     input <- lapply(names(input_draws), function(comp) {
-      input_draws[[comp]][get(draw_col_name) == i]
+      one_draw_dt <- input_draws[[comp]][get(draw_col_name) == i]
+      one_draw_dt[[draw_col_name]] <- NULL
+      return(one_draw_dt)
     })
     names(input) <- names(input_draws)
 
