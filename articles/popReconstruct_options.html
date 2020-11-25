@@ -99,12 +99,34 @@
 <a href="#original-popreconstruct-model" class="anchor"></a>Original popReconstruct model</h1>
 <p>In <code><a href="../articles/popReconstruct.html">vignette("popReconstruct", package = "popMethods")</a></code> the original popReconstruct model is explained and written out. Please read this first and become familiar with the basics of the <code><a href="https://rdrr.io/pkg/demCore/man/ccmpp.html">demCore::ccmpp</a></code> and <code><a href="../reference/popReconstruct_fit.html">popMethods::popReconstruct_fit</a></code> functions.</p>
 </div>
+<div id="estimate-mx-and-ax" class="section level1">
+<h1 class="hasAnchor">
+<a href="#estimate-mx-and-ax" class="anchor"></a>Estimate mx and ax</h1>
+<p>The survivorship ratio (nSx) is one of the components estimated in the original popReconstruct model. nSx can be calculated using life tables constructed from basic lifetable parameters. <code><a href="https://rdrr.io/pkg/demCore/man/ccmpp.html">demCore::ccmpp</a></code> has been made flexible enough to accept either just nSx or 2 out of 3 of ‘mx’, ‘ax’, or ‘qx’ inputs. <code><a href="../reference/popReconstruct_fit.html">popMethods::popReconstruct_fit</a></code> also can accept either <code>nSx</code> or, <code>mx</code> and <code>ax</code> inputs. This flexibility makes it easier to calculate deaths and life tables from the posterior distribution.</p>
+<p>‘ax’ values have known constraints that must be applied. For the terminal age group, ‘ax’ can be any positive value greater than or equal to 0, which is why it is log transformed. For all non-terminal age groups, ‘ax’ is a value between 0 and the size of the age intervals, which is why it is transformed with the logit function and scaled to be between 0 and the age_interval.</p>
+<p><strong>Level 1</strong> (likelihood for census counts): <span class="math display">\[\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)\]</span> <strong>Level 2</strong> (map from ccmpp input parameters to projected population counts): <span class="math display">\[n_{l,a,t} = \text{CCMPP}(srb_t, f_{a,t}, n_{l,a,t_0}, s_{l,a,t}, g_{l,a,t})\]</span> <strong>Level 2.1</strong> (calculate survivorship ratio): <span class="math display">\[s_{l,a,t} = F(mx_{l,a,t}, ax_{l,a,t})\]</span> <strong>Level 3.1</strong> (calculate the estimated ccmpp inputs): <span class="math display">\[\begin{aligned} &amp; \ \ \vdots \\
+\text{log} \ mx_{l,a,t} &amp;= \text{log} \ mx^*_{l,a,t} + \delta_{mx_{l,a,t}} \\
+\text{logit[0, age_interval]} \ ax_{l,a,t} &amp;= \text{logit[0, age_interval]} \ ax^*_{l,a,t} + \delta_{ax_{l,a,t}} \text{; if } A = \text{not terminal age} \\
+\text{log} \ ax_{l,a,t} &amp;= \text{log} \ ax^*_{l,a,t} + \delta_{ax_{l,a,t}} \text{; if } A = \text{terminal age}
+\end{aligned}\]</span></p>
+<p><strong>Level 3.2</strong> (priors for ccmpp input offset parameters): <span class="math display">\[\begin{aligned} &amp; \ \ \vdots \\
+\delta_{mx_{l,a,t}} &amp;\sim \text{Normal}(0, \sigma^2_{mx}) \\
+\delta_{ax_{l,a,t}} &amp;\sim \text{Normal}(0, \sigma^2_{ax_{\text{non_terminal}}}) \text{; if } A = \text{not terminal age} \\
+\delta_{ax_{l,a,t}} &amp;\sim \text{Normal}(0, \sigma^2_{ax_{\text{terminal}}}) \text{; if } A = \text{terminal age}
+\end{aligned}\]</span></p>
+<p><strong>Level 4</strong> (informative prior distributions representing measurement error): <span class="math display">\[\begin{aligned} \sigma^2_{\nu} &amp;\sim \text{InverseGamma}(\alpha^*_{\nu}, \beta^*_{\nu}) \\
+\nu &amp;\in \{{srb, f, n, mx, ax_{\text{non_terminal}}, ax_{\text{terminal}}, g}\} \end{aligned}\]</span></p>
+<p><strong>where</strong>:</p>
+<p><span class="math display">\[\begin{aligned} &amp; \ \ \vdots \\
+mx &amp;= \text{mortality rate} \\
+ax &amp;= \text{average number of years lived within the age interval by those dying in the interval} \end{aligned}\]</span></p>
+</div>
 <div id="estimate-immigration-and-emigration" class="section level1">
 <h1 class="hasAnchor">
 <a href="#estimate-immigration-and-emigration" class="anchor"></a>Estimate Immigration and Emigration</h1>
 <p>In the original popReconstruct model, net migration proportion is one of the components estimated. <code><a href="https://rdrr.io/pkg/demCore/man/ccmpp.html">demCore::ccmpp</a></code> has been made flexible enough to accept either just net migration or both immigration and emigration as inputs. To mirror this flexibility, <code><a href="../reference/popReconstruct_fit.html">popMethods::popReconstruct_fit</a></code> can accept either set of migration inputs. This allows one to set separate hyperparameters for immigration and emigration inputs when available since immigration is often easier to measure.</p>
 <p>Below, the net migration (<code>g</code>) inputs and parameters have been replaced by immigration <code>i</code> and emigration <code>e</code> components.</p>
-<p><strong>Level 1</strong> (likelihood for census counts): <span class="math display">\[\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)\]</span> <strong>Level 2</strong> (map from ccmpp input parameters to projected population counts): <span class="math display">\[n_{l,a,t} = \text{CCMPP}(srb_t, f_{a,t}, n_{l,a,t_0}, s_{l,a,t}, i_{l,a,t}, e_{l,a,t})\]</span> <strong>Level 3.1</strong> (calculate the estimated ccmpp inputs): <span class="math display">\[\begin{aligned} &amp; \ \ \vdots \\
+<p><strong>Level 1</strong> (likelihood for census counts): <span class="math display">\[\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)\]</span> <strong>Level 2</strong> (map from ccmpp input parameters to projected population counts): <span class="math display">\[n_{l,a,t} = \text{CCMPP}(srb_t, f_{a,t}, n_{l,a,t_0}, s_{l,a,t}, g_{l,a,t})\]</span> <strong>Level 2.1</strong> (calculate net migration): <span class="math display">\[g_{l,a,t} = i_{l,a,t} - e_{l,a,t}\]</span> <strong>Level 3.1</strong> (calculate the estimated ccmpp inputs): <span class="math display">\[\begin{aligned} &amp; \ \ \vdots \\
 \text{log} \ i_{l,a,t} &amp;= \text{log} \ i^*_{l,a,t} + \delta_{i_{l,a,t}} \\
 \text{log} \ e_{l,a,t} &amp;= \text{log} \ e^*_{l,a,t} + \delta_{e_{l,a,t}} \end{aligned}\]</span></p>
 <p><strong>Level 3.2</strong> (priors for ccmpp input offset parameters): <span class="math display">\[\begin{aligned} &amp; \ \ \vdots \\
@@ -116,8 +138,8 @@
 <p><span class="math display">\[\begin{aligned} &amp; \ \ \vdots \\
 i &amp;= \text{immigration proportion} \\
 e &amp;= \text{emigration proportion} \end{aligned}\]</span></p>
-<div class="sourceCode" id="cb1"><pre class="downlit">
-<span class="co"># `inputs` and `hyperparameters` must include "immigration" and "emigration"</span>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># `inputs` and `hyperparameters` must include "immigration" and "emigration"</span>
 <span class="co"># rather than "net_migration".</span>
 <span class="fu">popMethods</span><span class="fu">::</span><span class="fu"><a href="../reference/popReconstruct_fit.html">popReconstruct_fit</a></span><span class="op">(</span>
   inputs <span class="op">=</span> <span class="va">inputs</span>,
@@ -125,7 +147,7 @@ e &amp;= \text{emigration proportion} \end{aligned}\]</span></p>
   hyperparameters <span class="op">=</span> <span class="va">hyperparameters</span>,
   settings <span class="op">=</span> <span class="va">settings</span>,
   value_col <span class="op">=</span> <span class="st">"value"</span>
-<span class="op">)</span></pre></div>
+<span class="op">)</span></code></pre></div>
 </div>
 <div id="aggregate-census-data" class="section level1">
 <h1 class="hasAnchor">
@@ -135,8 +157,8 @@ e &amp;= \text{emigration proportion} \end{aligned}\]</span></p>
 <p><span class="math display">\[\text{log} \ n^{*}_{l,a,t} \sim \text{Normal}(\text{log} \ n_{l,a,t}, \sigma^2_n)\]</span> When data is only available in aggregate age groups or only for both sexes combined one strategy could be to split the data to the more detailed groupings needed for the model.</p>
 <p>Another that is implemented in <code><a href="../reference/popReconstruct_fit.html">popMethods::popReconstruct_fit</a></code> is to aggregate the detailed estimates <span class="math inline">\(n_{l,a,t}\)</span> so that they match the aggregate groupings available in the data. The variance (<span class="math inline">\(\sigma^2_n\)</span>) is then weighted by the number of sex-age-year groupings included in the aggregate group. So <span class="math inline">\(\sigma^2_n\)</span> actually represents the variance of one single sex-age-year group. This is needed to give equal weight to a census where only the total population may be available and a census where single year age groups for each sex is available.</p>
 <p>Below, this is written out for one example data point where the both sexes combined, under 5 age group in 1980 is available. The variance <span class="math inline">\(\sigma^2_n\)</span> is divided by 10 because 2 sexes and 5 single year age groups are included in the data point. <span class="math display">\[\text{log} \ n^{*}_{\text{both},0-5,1980} \sim \text{Normal}(\text{log} \sum_{l=\text{female}}^{\text{male}} \sum_{a=0}^{4} n_{l,a,1980}, \frac{\sigma^2_n}{10})\]</span></p>
-<div class="sourceCode" id="cb2"><pre class="downlit">
-<span class="co"># `data$population` data.table always includes "age_start" and "age_end"</span>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># `data$population` data.table always includes "age_start" and "age_end"</span>
 <span class="co"># columns. When fitting a model equivalent to the original popReconstruct model</span>
 <span class="co"># the "age_start" values must include all `settings$ages` values. This model</span>
 <span class="co"># feature now allows aggregate age groups meaning not all `settings$ages` values</span>
@@ -148,7 +170,7 @@ e &amp;= \text{emigration proportion} \end{aligned}\]</span></p>
   hyperparameters <span class="op">=</span> <span class="va">hyperparameters</span>,
   settings <span class="op">=</span> <span class="va">settings</span>,
   value_col <span class="op">=</span> <span class="st">"value"</span>
-<span class="op">)</span></pre></div>
+<span class="op">)</span></code></pre></div>
 </div>
 <div id="linear-splines" class="section level1">
 <h1 class="hasAnchor">
@@ -195,8 +217,8 @@ g &amp;= \text{net migration proportion} \end{aligned}\]</span></p>
 <p><span class="math display">\[\text{log} \ n_{l,20,1960} = \text{log} \ n^*_{l,20,1960} + \frac{1}{1} \delta^{n_{t_0}}_{l,20,1960}\]</span></p>
 <p>For age 25, it is a function of multiple elements of <span class="math inline">\(\delta^{n_{t_0}}_{l,k_a,t_0}\)</span> because it is not one of the knots.</p>
 <p><span class="math display">\[\text{log} \ n_{l,25,1960} = \text{log} \ n^*_{l,25,1960} + \frac{1}{2} \delta^{n_{t_0}}_{l,20,1960} + \frac{1}{2} \delta^{n_{t_0}}_{l,30,1960}\]</span> You can see the coefficients by examining the <span class="math inline">\(a\)</span> by <span class="math inline">\(k_a\)</span> matrix <span class="math inline">\(\mathbf{B}^{n_{t_0}}_a\)</span> below.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit">
-<span class="co"># define the ages included in the inputs</span>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># define the ages included in the inputs</span>
 <span class="va">ages</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">80</span>, <span class="fl">5</span><span class="op">)</span>
 
 <span class="co"># define the knots of the piecewise linear function</span>
@@ -237,7 +259,7 @@ g &amp;= \text{net migration proportion} \end{aligned}\]</span></p>
 <span class="co">#&gt; attr(,"intercept")</span>
 <span class="co">#&gt; [1] FALSE</span>
 <span class="co">#&gt; attr(,"class")</span>
-<span class="co">#&gt; [1] "bs"     "basis"  "matrix"</span></pre></div>
+<span class="co">#&gt; [1] "bs"     "basis"  "matrix"</span></code></pre></div>
 <p>This same idea can be applied to reduce year-specific parameters like for sex-ratio at birth.</p>
 <p><span class="math display">\[\text{log} \ srb_{t} = \text{log} \ srb^*_{t} + \delta^{srb}_{k_t}{\mathbf{B}^{srb}_t}^\intercal\]</span></p>
 <p>And combined for year and age specific parameters like for asfr, survival and migration.</p>
@@ -268,8 +290,8 @@ k_t &amp;= \text{year-specific knots} \\
 <li><p>smooth deviations from the initial input estimates.</p></li>
 <li><p>reduce back to the original model if a knot is included at every single age and year of the inputs.</p></li>
 </ul>
-<div class="sourceCode" id="cb4"><pre class="downlit">
-<span class="co"># To use this feature use the optional additional settings variables as</span>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># To use this feature use the optional additional settings variables as</span>
 <span class="co"># described in the "Optional popReconstruct Settings" of the documentation for</span>
 <span class="co"># `popReconstruct_fit`.</span>
 
@@ -280,7 +302,7 @@ k_t &amp;= \text{year-specific knots} \\
   k_years_survival <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">1950</span>, <span class="fl">2020</span>, <span class="fl">5</span><span class="op">)</span>,
   k_ages_survival <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">5</span>, <span class="fl">15</span>, <span class="fl">60</span>, <span class="fl">95</span><span class="op">)</span>,
   <span class="va">...</span>
-<span class="op">)</span></pre></div>
+<span class="op">)</span></code></pre></div>
 </div>
 </div>
 <div id="references" class="section level1">

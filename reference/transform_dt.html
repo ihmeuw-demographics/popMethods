@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Helper function to validate hyperparameter values — validate_popReconstruct_hyperparameters • popMethods</title>
+<title>Helper function to transform values in a data.table — transform_dt • popMethods</title>
 
 
 <!-- jquery -->
@@ -39,9 +39,8 @@
 
 
 
-<meta property="og:title" content="Helper function to validate hyperparameter values — validate_popReconstruct_hyperparameters" />
-<meta property="og:description" content="Assert that the list of hyperparameters includes all expected
-components that are not fixed in the model." />
+<meta property="og:title" content="Helper function to transform values in a data.table — transform_dt" />
+<meta property="og:description" content="Helper function to transform values in a data.table" />
 
 
 
@@ -124,49 +123,57 @@ components that are not fixed in the model." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Helper function to validate hyperparameter values</h1>
-    <small class="dont-index">Source: <a href='https://github.com/ihmeuw-demographics/popMethods/blob/master/R/popReconstruct_fit.R'><code>R/popReconstruct_fit.R</code></a></small>
-    <div class="hidden name"><code>validate_popReconstruct_hyperparameters.Rd</code></div>
+    <h1>Helper function to transform values in a data.table</h1>
+    <small class="dont-index">Source: <a href='https://github.com/ihmeuw-demographics/popMethods/blob/master/R/popReconstruct_settings.R'><code>R/popReconstruct_settings.R</code></a></small>
+    <div class="hidden name"><code>transform_dt.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Assert that the list of hyperparameters includes all expected
-components that are not fixed in the model.</p>
+    <p>Helper function to transform values in a data.table</p>
     </div>
 
-    <pre class="usage"><span class='fu'>validate_popReconstruct_hyperparameters</span><span class='op'>(</span><span class='va'>hyperparameters</span>, <span class='va'>inputs</span>, <span class='va'>settings</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>transform_dt</span><span class='op'>(</span><span class='va'>dt</span>, <span class='va'>value_col</span>, <span class='va'>transformation</span>, <span class='va'>transformation_arguments</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>hyperparameters</th>
-      <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>]<br />
-List for each model component ('srb', 'asfr', ...) that itself contains a
-list specifying the alpha (shape) and beta (scale) hyperparameters for the
-variance of each model component.</p></td>
+      <th>dt</th>
+      <td><p>[<code>data.table(1)</code>]<br />
+The data.table to apply the transformation functions to.</p></td>
     </tr>
     <tr>
-      <th>inputs</th>
-      <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>]<br />
-[<code>data.table()</code>] for each ccmpp input. Requires 'srb', 'asfr', 'baseline';
-mortality estimates provided as just 'survival' or two of 'mx', 'ax', and
-'qx'; and migration estimates provided as just 'net_migration' or both
-'immigration' and 'emigration'. See <strong>Section: Inputs</strong> for more
-information on each of the required inputs.</p></td>
+      <th>value_col</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/character.html'>character(1)</a></code>]<br />
+The column in <code>dt</code> to transform.</p></td>
     </tr>
     <tr>
-      <th>settings</th>
+      <th>transformation</th>
+      <td><p>[<code>function(1)</code>]<br />
+NULL if no transformation. Otherwise transformation function to
+apply to <code>value_col</code>.</p></td>
+    </tr>
+    <tr>
+      <th>transformation_arguments</th>
       <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>]<br />
-Named list of settings for running the popReconstruct model with. The
-required settings are the same as those required for <code><a href='https://rdrr.io/pkg/demCore/man/ccmpp.html'>demCore::ccmpp()</a></code>,
-see <strong>Section: Settings</strong> for these. The optional settings specific to
-popReconstruct are described in
-<strong>Section: Optional popReconstruct Settings</strong></p></td>
+NULL if no transformation. Otherwise list of arguments to provide to the
+corresponding <code>transformation</code> function(s).</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
+    <p>invisibly return <code>dt</code> with transformed values.</p>
+
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'>popMethods</span><span class='fu'>:::</span><span class='fu'>transform_dt</span><span class='op'>(</span>
+  dt <span class='op'>=</span> <span class='fu'>data.table</span><span class='fu'>::</span><span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span><span class='op'>(</span>year <span class='op'>=</span> <span class='fl'>1950</span>, value <span class='op'>=</span> <span class='fl'>2.5</span><span class='op'>)</span>,
+  value_col <span class='op'>=</span> <span class='st'>"value"</span>,
+  transformation <span class='op'>=</span> <span class='fu'>demUtils</span><span class='fu'>::</span><span class='va'><a href='https://rdrr.io/pkg/demUtils/man/logit_utils.html'>logit</a></span>,
+  transformation_arguments <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span>domain_lower <span class='op'>=</span> <span class='fl'>0</span>, domain_upper <span class='op'>=</span> <span class='fl'>5</span><span class='op'>)</span>
+<span class='op'>)</span>
+</div><div class='output co'>#&gt;    year value
+#&gt; 1: 1950     0</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
