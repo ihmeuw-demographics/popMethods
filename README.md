@@ -15,7 +15,14 @@ This package has not yet been published on CRAN, but can be installed from
 GitHub using the [remotes](https://remotes.r-lib.org/) package.
 
 ```r
+# This is currently required for installation from Github due to the custom `src/Makevars` file
+# that is included to have both Stan and TMB models in the package
+Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS=TRUE)
+
 remotes::install_github("ihmeuw-demographics/popMethods", dependencies = TRUE)
+
+# Unset the environment variable used to install popMethods
+Sys.unsetenv("R_REMOTES_NO_ERRORS_FROM_WARNINGS")
 ```
 
 ## Getting help
