@@ -15,6 +15,9 @@
 #'
 #' [`popReconstruct_prior_draws()`] produces draws from the prior distribution.
 #'
+#' [`popReconstruct_count_space_parameters()`] uses draws from the popReconstruct model
+#' to derive count space parameters.
+#'
 #' [`popReconstruct_summarize_draws()`] produces summary statistics of draws from
 #' the popReconstruct model using [`demUtils::summarize_dt()`]. The
 #' `summarize_cols` parameter should include 'chain', 'chain_draw' and 'draw'
@@ -49,6 +52,15 @@
 #' @param draws \[`list()`\] of \[`data.table()`\]\cr
 #'   Draws from the posterior distribution of the popReconstruct model as
 #'   returned by [`popReconstruct_posterior_draws()`].
+#'
+#' @param parameters \[`character()`\]\cr
+#'   Count space parameters to derive. Can be a combination of 'live_births',
+#'   'deaths', 'net_migrants', 'immigrants', 'emigrants'. Default is
+#'   'live_births', 'deaths', & 'net_migrants'.
+#' @param quiet \[`logical(1)`\]\cr
+#'   Should progress messages be suppressed as the function is run? Default is
+#'   False.
+#'
 #' @inheritParams demUtils::summarize_dt
 #'
 #' @param ... For [`popReconstruct_fit()`] additional arguments to pass to
@@ -151,6 +163,12 @@
 #' values with the initial ccmpp input estimates and after applying the inverse
 #' of the transformation used to model each component.
 #'
+#' @section `popReconstruct_count_space_parameters` Value:
+#' Returns the same named \[`list()`\] of \[`data.table()`\] returned by
+#' [`popReconstruct_posterior_draws()`] or [`popReconstruct_prior_draws()`] with
+#' additional list elements for each of the specified count space `parameters`
+#' requested.
+#'
 #' @section `popReconstruct_summarize_draws` Value:
 #' Returns a named \[`list()`\] of \[`data.table()`\] for summary statistics
 #' of the input `draws`. Each [data.table()] will have the `id_cols` for each
@@ -213,6 +231,13 @@
 #'   value_col = "value",
 #'   software = "stan",
 #'   method_name = "original"
+#' )
+#'
+#' draws_stan <- popMethods::popReconstruct_count_space_parameters(
+#'   draws = draws_stan,
+#'   settings = settings,
+#'   parameters = c("live_births", "net_migrants"),
+#'   value_col = "value",
 #' )
 #'
 #' summary_stan <- popMethods::popReconstruct_summarize_draws(

@@ -3,6 +3,7 @@
 \name{popReconstruct_fit}
 \alias{popReconstruct_fit}
 \alias{popReconstruct_posterior_draws}
+\alias{popReconstruct_count_space_parameters}
 \alias{popReconstruct_prior_draws}
 \alias{popReconstruct_summarize_draws}
 \title{Implement the Bayesian hierarchical PopReconstruct model}
@@ -24,6 +25,14 @@ popReconstruct_posterior_draws(
   value_col,
   software,
   method_name
+)
+
+popReconstruct_count_space_parameters(
+  draws,
+  settings,
+  parameters = c("live_births", "deaths", "net_migrants"),
+  value_col = "value",
+  quiet = FALSE
 )
 
 popReconstruct_prior_draws(
@@ -86,12 +95,21 @@ Model fit object returned by \code{\link[=popReconstruct_fit]{popReconstruct_fit
 \item{method_name}{[\code{character(1)}]\cr
 Description to assign to column 'method' in each returned data.table.}
 
-\item{chunk_size}{[\code{integer(1)}]\cr
-number of draws to sample from the prior at once.}
-
 \item{draws}{[\code{list()}] of [\code{data.table()}]\cr
 Draws from the posterior distribution of the popReconstruct model as
 returned by \code{\link[=popReconstruct_posterior_draws]{popReconstruct_posterior_draws()}}.}
+
+\item{parameters}{[\code{character()}]\cr
+Count space parameters to derive. Can be a combination of 'live_births',
+'deaths', 'net_migrants', 'immigrants', 'emigrants'. Default is
+'live_births', 'deaths', & 'net_migrants'.}
+
+\item{quiet}{[\code{logical(1)}]\cr
+Should progress messages be suppressed as the function is run? Default is
+False.}
+
+\item{chunk_size}{[\code{integer(1)}]\cr
+number of draws to sample from the prior at once.}
 
 \item{summarize_cols}{[\code{character()}]\cr
 The \code{id_cols} that should be collapsed and to calculate summary statistics
@@ -111,6 +129,9 @@ accounting for measurement error in these initial estimates.
 distribution.
 
 \code{\link[=popReconstruct_prior_draws]{popReconstruct_prior_draws()}} produces draws from the prior distribution.
+
+\code{\link[=popReconstruct_count_space_parameters]{popReconstruct_count_space_parameters()}} uses draws from the popReconstruct model
+to derive count space parameters.
 
 \code{\link[=popReconstruct_summarize_draws]{popReconstruct_summarize_draws()}} produces summary statistics of draws from
 the popReconstruct model using \code{\link[demUtils:summarize_dt]{demUtils::summarize_dt()}}. The
@@ -225,6 +246,14 @@ estimated values are in the transformed modeling space.
 values with the initial ccmpp input estimates and after applying the inverse
 of the transformation used to model each component.
 }
+}
+
+\section{\code{popReconstruct_count_space_parameters} Value}{
+
+Returns the same named [\code{list()}] of [\code{data.table()}] returned by
+\code{\link[=popReconstruct_posterior_draws]{popReconstruct_posterior_draws()}} or \code{\link[=popReconstruct_prior_draws]{popReconstruct_prior_draws()}} with
+additional list elements for each of the specified count space \code{parameters}
+requested.
 }
 
 \section{\code{popReconstruct_summarize_draws} Value}{
@@ -438,6 +467,13 @@ draws_stan <- popMethods::popReconstruct_posterior_draws(
   value_col = "value",
   software = "stan",
   method_name = "original"
+)
+
+draws_stan <- popMethods::popReconstruct_count_space_parameters(
+  draws = draws_stan,
+  settings = settings,
+  parameters = c("live_births", "net_migrants"),
+  value_col = "value",
 )
 
 summary_stan <- popMethods::popReconstruct_summarize_draws(

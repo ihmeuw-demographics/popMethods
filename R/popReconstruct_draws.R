@@ -66,6 +66,216 @@ popReconstruct_posterior_draws <- function(fit,
   return(draws)
 }
 
+#' @export
+#' @rdname popReconstruct_fit
+#' @include popReconstruct_fit.R
+popReconstruct_count_space_parameters <- function(draws,
+                                                  settings,
+                                                  parameters = c("live_births",
+                                                                 "deaths",
+                                                                 "net_migrants"),
+                                                  value_col = "value",
+                                                  quiet = FALSE) {
+
+  # Validate arguments ------------------------------------------------------
+
+  # check `value_col` argument
+  assertthat::assert_that(assertthat::is.string(value_col))
+
+  # check `draws` argument
+  assertthat::assert_that(
+    class(draws) == "list",
+    unique(sapply(draws, class)[1, ]) == "data.table",
+    all(sapply(draws, function(dt) value_col %in% names(dt))),
+    msg = paste0("`draws` must be a list of data.tables that each contains ",
+                 "`value_col`")
+  )
+
+  possible_count_space_params <- c("live_births", "deaths", "net_migrants",
+                                   "immigrants", "emigrants")
+  assertthat::assert_that(
+    all(parameters %in% possible_count_space_params),
+    msg = paste0("`parameters` must be one of '",
+                 paste(possible_count_space_params, collapse = "', '"), "'.")
+  )
+
+  required_components <- "population"
+  if ("live_births" %in% names(draws)) append(required_components, c("asfr", "srb"))
+  if ("net_migrants" %in% names(draws)) append(required_components, "net_migration")
+  if ("immigrants" %in% names(draws)) append(required_components, "immigration")
+  if ("emigrants" %in% names(draws)) append(required_components, "emigration")
+  if ("deaths" %in% names(draws)) {
+    append(required_components, "mx")
+    if (max(settings$ages_mortality) > max(settings$ages)) {
+      append(required_components, "ax")
+    }
+  }
+  missing_components <- setdiff(required_components, names(draws))
+  assertthat::assert_that(
+    length(missing_components) == 0,
+    msg = paste0("missing components required to calculate requested parameters ",
+                 paste(missing_components, collapse = "', '"), "'.")
+  )
+
+  all_cols <- c("year_start", "year_end", "sex", "age_start", "age_end",
+                "chain", "chain_draw", "draw", "method", value_col)
+
+  population_draws <- copy(draws[["population"]])
+  setnames(population_draws, value_col, "population")
+
+  # Compute live births -----------------------------------------------------
+
+  if ("live_births" %in% parameters) {
+
+    if (!quiet) message("- live births")
+
+    # compile together asfr, srb, and population draws into one data.table
+    asfr_draws <- copy(draws[["asfr"]])
+    setnames(asfr_draws, value_col, "asfr")
+    live_births_draws <- merge(
+      asfr_draws,
+      population_draws[sex == "female"],
+      all.x = TRUE,
+      by.x = sort(setdiff(names(asfr_draws), c("asfr", "year_end"))),
+      by.y = sort(setdiff(names(population_draws), c("population", "sex")))
+    )
+    live_births_draws[, sex := NULL]
+    rm(asfr_draws)
+
+    srb_draws <- copy(draws[["srb"]])
+    setnames(srb_draws, value_col, "srb")
+    live_births_draws <- merge(
+      live_births_draws,
+      srb_draws,
+      all.x = TRUE,
+      by = setdiff(names(srb_draws), c("srb"))
+    )
+    rm(srb_draws)
+
+    # actually compute maternal-age & child-sex specific live births draws
+    live_births_draws[, total_births := asfr * population]
+    live_births_draws[, male_proportion := srb / (srb + 1)]
+    live_births_draws[, female_proportion := 1 / (srb + 1)]
+    live_births_draws[, c("asfr", "population", "srb") := NULL]
+    live_births_draws <- melt(
+      live_births_draws,
+      measure.vars = c("male_proportion", "female_proportion"),
+      variable.name = "sex", value.name = "proportion"
+    )
+    live_births_draws[, sex := gsub("_proportion", "", sex)]
+    live_births_draws[, mean := total_births * proportion]
+    live_births_draws[, c("total_births", "proportion") := NULL]
+
+    setnames(live_births_draws, "mean", value_col)
+    live_births_cols <- all_cols[all_cols %in% names(live_births_draws)]
+    setcolorder(live_births_draws, live_births_cols)
+    setkeyv(live_births_draws, setdiff(live_births_cols, value_col))
+
+    draws[["live_births"]] <- live_births_draws
+    rm(live_births_draws)
+  }
+
+  # Compute migrant counts --------------------------------------------------
+
+  for (migrants_parameter in c("net_migrants", "immigrants", "emigrants")) {
+    if (migrants_parameter %in% parameters) {
+
+      if (!quiet) message(paste("-", migrants_parameter))
+
+      migration_parameter <- switch(
+        EXPR = migrants_parameter,
+        "net_migrants" = "net_migration",
+        "immigrants" = "immigration",
+        "emigrants" = "emigration"
+      )
+
+      # compile together migration, & population draws into one data.table
+      migration_draws <- copy(draws[[migration_parameter]])
+      setnames(migration_draws, value_col, "migration_proportion")
+
+      migrants_draws <- merge(
+        migration_draws,
+        population_draws,
+        all.x = TRUE,
+        by.x = sort(setdiff(names(migration_draws), c("migration_proportion", "year_end"))),
+        by.y = sort(setdiff(names(population_draws), c("population")))
+      )
+      rm(migration_draws)
+      migrants_draws[, mean := migration_proportion * population]
+      migrants_draws[, c("migration_proportion", "population") := NULL]
+
+      setnames(migrants_draws, "mean", value_col)
+      migrant_cols <- all_cols[all_cols %in% names(migrants_draws)]
+      setcolorder(migrants_draws, migrant_cols)
+      setkeyv(migrants_draws, setdiff(migrant_cols, value_col))
+
+      draws[[migrants_parameter]] <- migrants_draws
+      rm(migrants_draws)
+    }
+  }
+
+  # Compute deaths ----------------------------------------------------------
+
+  if ("deaths" %in% parameters) {
+
+    if (!quiet) message("- deaths")
+
+    # compile together mx, & ax draws into one data.table
+    mx_draws <- copy(draws[["mx"]])
+    setnames(mx_draws, value_col, "mx")
+
+    # collapse mx draws to the same terminal age group as the population estimates
+    if (max(settings$ages_mortality) > max(settings$ages)) {
+      ax_draws <- copy(draws[["ax"]])
+      setnames(ax_draws, value_col, "ax")
+      lt_draws <- merge(
+        mx_draws, ax_draws,
+        all = TRUE,
+        by = setdiff(names(mx_draws), "mx")
+      )
+      rm(ax_draws)
+
+      # collapse to lower terminal age group
+      lt_terminal_draws <- demCore::agg_lt(
+        dt = lt_draws[age_start >= max(settings$ages)],
+        id_cols = setdiff(names(lt_draws), c("mx", "ax")),
+        age_mapping = data.table(age_start = max(settings$ages), age_end = Inf),
+        quiet = quiet
+      )
+      hierarchyUtils::gen_length(lt_terminal_draws, col_stem = "age")
+      lt_terminal_draws[, mx := demCore::qx_ax_to_mx(qx, ax, age_length)]
+      lt_terminal_draws <- lt_terminal_draws[, .SD, .SDcols = names(lt_draws)]
+
+      lt_draws <- lt_draws[age_start < max(settings$ages)]
+      lt_draws <- rbind(lt_draws, lt_terminal_draws, use.names = TRUE)
+      mx_draws <- lt_draws[, .SD, .SDcols = names(mx_draws)]
+      rm(lt_draws)
+    }
+
+    deaths_draws <- merge(
+      mx_draws,
+      population_draws,
+      all.x = TRUE,
+      by.x = sort(setdiff(names(mx_draws), c("mx", "year_end"))),
+      by.y = sort(setdiff(names(population_draws), c("population")))
+    )
+    rm(mx_draws)
+
+    # actually compute age-sex specific deaths draws
+    deaths_draws[, mean := mx * population]
+    deaths_draws[, c("mx", "population") := NULL]
+
+    setnames(deaths_draws, "mean", value_col)
+    deaths_cols <- all_cols[all_cols %in% names(deaths_draws)]
+    setcolorder(deaths_draws, deaths_cols)
+    setkeyv(deaths_draws, setdiff(deaths_cols, value_col))
+
+    draws[["deaths"]] <- deaths_draws
+    rm(deaths_draws)
+  }
+  return(draws)
+}
+
 #' @title Helper function to extract draws from popReconstruct stan fits
 #'
 #' @inheritParams popReconstruct_posterior_draws
