@@ -242,6 +242,8 @@ popReconstruct_count_space_parameters <- function(draws,
         age_mapping = data.table(age_start = max(settings$ages), age_end = Inf),
         quiet = quiet
       )
+
+      # TODO: remove once `demCore::agg_lt` returns same life table paramaters
       hierarchyUtils::gen_length(lt_terminal_draws, col_stem = "age")
       lt_terminal_draws[, mx := demCore::qx_ax_to_mx(qx, ax, age_length)]
       lt_terminal_draws <- lt_terminal_draws[, .SD, .SDcols = names(lt_draws)]

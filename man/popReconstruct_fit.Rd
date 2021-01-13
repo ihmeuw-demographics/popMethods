@@ -130,8 +130,12 @@ distribution.
 
 \code{\link[=popReconstruct_prior_draws]{popReconstruct_prior_draws()}} produces draws from the prior distribution.
 
-\code{\link[=popReconstruct_count_space_parameters]{popReconstruct_count_space_parameters()}} uses draws from the popReconstruct model
-to derive count space parameters.
+\code{\link[=popReconstruct_count_space_parameters]{popReconstruct_count_space_parameters()}} uses draws from the
+popReconstruct model to derive count space parameters. For most of the
+\code{parameters} this is calculated as \eqn{count = rate * population}. Maternal
+age-specific live births are also split into child sex-specific live births
+using the sex ratio at birth. \eqn{male_proportion = srb / (srb + 1)} &
+\eqn{female_proportion = 1 / (srb + 1)}.
 
 \code{\link[=popReconstruct_summarize_draws]{popReconstruct_summarize_draws()}} produces summary statistics of draws from
 the popReconstruct model using \code{\link[demUtils:summarize_dt]{demUtils::summarize_dt()}}. The
