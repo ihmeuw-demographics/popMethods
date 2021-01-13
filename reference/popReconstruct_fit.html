@@ -50,6 +50,12 @@ TMB.
 popReconstruct_posterior_draws() produces draws from the posterior
 distribution.
 popReconstruct_prior_draws() produces draws from the prior distribution.
+popReconstruct_count_space_parameters() uses draws from the
+popReconstruct model to derive count space parameters. For most of the
+parameters this is calculated as \(count = rate * population\). Maternal
+age-specific live births are also split into child sex-specific live births
+using the sex ratio at birth. \(male_proportion = srb / (srb + 1)\) &amp;amp;
+\(female_proportion = 1 / (srb + 1)\).
 popReconstruct_summarize_draws() produces summary statistics of draws from
 the popReconstruct model using demUtils::summarize_dt(). The
 summarize_cols parameter should include 'chain', 'chain_draw' and 'draw'
@@ -94,7 +100,7 @@ tmb." />
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -120,7 +126,7 @@ tmb." />
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/ihmeuw-demographics/popMethods/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -153,6 +159,12 @@ accounting for measurement error in these initial estimates.</p>
 <p><code>popReconstruct_posterior_draws()</code> produces draws from the posterior
 distribution.</p>
 <p><code>popReconstruct_prior_draws()</code> produces draws from the prior distribution.</p>
+<p><code>popReconstruct_count_space_parameters()</code> uses draws from the
+popReconstruct model to derive count space parameters. For most of the
+<code>parameters</code> this is calculated as \(count = rate * population\). Maternal
+age-specific live births are also split into child sex-specific live births
+using the sex ratio at birth. \(male_proportion = srb / (srb + 1)\) &amp;
+\(female_proportion = 1 / (srb + 1)\).</p>
 <p><code>popReconstruct_summarize_draws()</code> produces summary statistics of draws from
 the popReconstruct model using <code><a href='https://rdrr.io/pkg/demUtils/man/summarize_dt.html'>demUtils::summarize_dt()</a></code>. The
 <code>summarize_cols</code> parameter should include 'chain', 'chain_draw' and 'draw'
@@ -177,6 +189,14 @@ tmb.</p>
   <span class='va'>value_col</span>,
   <span class='va'>software</span>,
   <span class='va'>method_name</span>
+<span class='op'>)</span>
+
+<span class='fu'>popReconstruct_count_space_parameters</span><span class='op'>(</span>
+  <span class='va'>draws</span>,
+  <span class='va'>settings</span>,
+  parameters <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"live_births"</span>, <span class='st'>"deaths"</span>, <span class='st'>"net_migrants"</span><span class='op'>)</span>,
+  value_col <span class='op'>=</span> <span class='st'>"value"</span>,
+  quiet <span class='op'>=</span> <span class='cn'>FALSE</span>
 <span class='op'>)</span>
 
 <span class='fu'>popReconstruct_prior_draws</span><span class='op'>(</span>
@@ -260,15 +280,28 @@ Model fit object returned by <code>popReconstruct_fit()</code>.</p></td>
 Description to assign to column 'method' in each returned data.table.</p></td>
     </tr>
     <tr>
-      <th>chunk_size</th>
-      <td><p>[<code><a href='https://rdrr.io/r/base/integer.html'>integer(1)</a></code>]<br />
-number of draws to sample from the prior at once.</p></td>
-    </tr>
-    <tr>
       <th>draws</th>
       <td><p>[<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>] of [<code>data.table()</code>]<br />
 Draws from the posterior distribution of the popReconstruct model as
 returned by <code>popReconstruct_posterior_draws()</code>.</p></td>
+    </tr>
+    <tr>
+      <th>parameters</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/character.html'>character()</a></code>]<br />
+Count space parameters to derive. Can be a combination of 'live_births',
+'deaths', 'net_migrants', 'immigrants', 'emigrants'. Default is
+'live_births', 'deaths', &amp; 'net_migrants'.</p></td>
+    </tr>
+    <tr>
+      <th>quiet</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/logical.html'>logical(1)</a></code>]<br />
+Should progress messages be suppressed as the function is run? Default is
+False.</p></td>
+    </tr>
+    <tr>
+      <th>chunk_size</th>
+      <td><p>[<code><a href='https://rdrr.io/r/base/integer.html'>integer(1)</a></code>]<br />
+number of draws to sample from the prior at once.</p></td>
     </tr>
     <tr>
       <th>summarize_cols</th>
@@ -384,6 +417,14 @@ values with the initial ccmpp input estimates and after applying the inverse
 of the transformation used to model each component.</p></li>
 </ol>
 
+    <h2 class="hasAnchor" id="popreconstruct-count-space-parameters-value"><a class="anchor" href="#popreconstruct-count-space-parameters-value"></a><code>popReconstruct_count_space_parameters</code> Value</h2>
+
+    
+
+<p>Returns the same named [<code><a href='https://rdrr.io/r/base/list.html'>list()</a></code>] of [<code>data.table()</code>] returned by
+<code>popReconstruct_posterior_draws()</code> or <code>popReconstruct_prior_draws()</code> with
+additional list elements for each of the specified count space <code>parameters</code>
+requested.</p>
     <h2 class="hasAnchor" id="popreconstruct-summarize-draws-value"><a class="anchor" href="#popreconstruct-summarize-draws-value"></a><code>popReconstruct_summarize_draws</code> Value</h2>
 
     
@@ -606,8 +647,8 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
 </div><div class='output co'>#&gt; 
 #&gt; SAMPLING FOR MODEL 'popReconstruct' NOW (CHAIN 1).
 #&gt; Chain 1: 
-#&gt; Chain 1: Gradient evaluation took 0.000531 seconds
-#&gt; Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.31 seconds.
+#&gt; Chain 1: Gradient evaluation took 0.000486 seconds
+#&gt; Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 4.86 seconds.
 #&gt; Chain 1: Adjust your expectations accordingly!
 #&gt; Chain 1: 
 #&gt; Chain 1: 
@@ -632,9 +673,9 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
 #&gt; Chain 1: Iteration: 180 / 200 [ 90%]  (Sampling)
 #&gt; Chain 1: Iteration: 200 / 200 [100%]  (Sampling)
 #&gt; Chain 1: 
-#&gt; Chain 1:  Elapsed Time: 2.47574 seconds (Warm-up)
-#&gt; Chain 1:                2.02501 seconds (Sampling)
-#&gt; Chain 1:                4.50075 seconds (Total)
+#&gt; Chain 1:  Elapsed Time: 2.37048 seconds (Warm-up)
+#&gt; Chain 1:                1.95379 seconds (Sampling)
+#&gt; Chain 1:                4.32427 seconds (Total)
 #&gt; Chain 1: </div><div class='output co'>#&gt; <span class='warning'>Warning: There were 1 chains where the estimated Bayesian Fraction of Missing Information was low. See</span>
 #&gt; <span class='warning'>http://mc-stan.org/misc/warnings.html#bfmi-low</span></div><div class='output co'>#&gt; <span class='warning'>Warning: Examine the pairs() plot to diagnose sampling problems</span></div><div class='output co'>#&gt; <span class='warning'>Warning: The largest R-hat is NA, indicating chains have not mixed.</span>
 #&gt; <span class='warning'>Running the chains for more iterations may help. See</span>
@@ -652,6 +693,13 @@ Statistical Society. Series A: Statistics in Society 178 (4): 977–1007.
   method_name <span class='op'>=</span> <span class='st'>"original"</span>
 <span class='op'>)</span>
 
+<span class='va'>draws_stan</span> <span class='op'>&lt;-</span> <span class='fu'>popMethods</span><span class='fu'>::</span><span class='fu'>popReconstruct_count_space_parameters</span><span class='op'>(</span>
+  draws <span class='op'>=</span> <span class='va'>draws_stan</span>,
+  settings <span class='op'>=</span> <span class='va'>settings</span>,
+  parameters <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"live_births"</span>, <span class='st'>"net_migrants"</span><span class='op'>)</span>,
+  value_col <span class='op'>=</span> <span class='st'>"value"</span>,
+<span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='message'>- live births</span></div><div class='output co'>#&gt; <span class='message'>- net_migrants</span></div><div class='input'>
 <span class='va'>summary_stan</span> <span class='op'>&lt;-</span> <span class='fu'>popMethods</span><span class='fu'>::</span><span class='fu'>popReconstruct_summarize_draws</span><span class='op'>(</span>
   draws <span class='op'>=</span> <span class='va'>draws_stan</span>
 <span class='op'>)</span>
