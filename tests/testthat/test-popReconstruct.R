@@ -18,7 +18,13 @@ hyperparameters <- list(
 
 # popReconstruct testing helper functions ---------------------------------
 
-test_fit <- function(inputs, data, hyperparameters, settings, software, ...) {
+test_fit <- function(inputs,
+                     data,
+                     hyperparameters,
+                     settings,
+                     software,
+                     count_parameters,
+                     ...) {
 
   fit <- testthat::expect_error(
     popMethods::popReconstruct_fit(
@@ -46,6 +52,19 @@ test_fit <- function(inputs, data, hyperparameters, settings, software, ...) {
   testthat::expect_equal("list", class(draws))
   testthat::expect_equal("data.table", unique(sapply(draws, class)[1, ]))
 
+  testthat::expect_silent(
+    draws <- popMethods::popReconstruct_count_space_parameters(
+      draws = draws,
+      settings = settings,
+      parameters = count_parameters,
+      value_col = "value",
+      quiet = TRUE
+    )
+  )
+  testthat::expect_true(all(count_parameters %in% names(draws)))
+  testthat::expect_equal("list", class(draws))
+  testthat::expect_equal("data.table", unique(sapply(draws, class)[1, ]))
+
   summarize_cols <- c("chain", "chain_draw", "draw")
   if (software == "tmb") summarize_cols <- c("draw")
   summary <- testthat::expect_silent(
@@ -58,7 +77,7 @@ test_fit <- function(inputs, data, hyperparameters, settings, software, ...) {
   testthat::expect_equal("data.table", unique(sapply(summary, class)[1, ]))
 }
 
-test_prior <- function(inputs, hyperparameters, settings) {
+test_prior <- function(inputs, hyperparameters, settings, count_parameters) {
   draws <- testthat::expect_output(
     popMethods::popReconstruct_prior_draws(
       inputs = inputs,
@@ -68,6 +87,19 @@ test_prior <- function(inputs, hyperparameters, settings) {
       method_name = "Original"
     )
   )
+  testthat::expect_equal("list", class(draws))
+  testthat::expect_equal("data.table", unique(sapply(draws, class)[1, ]))
+
+  testthat::expect_silent(
+    draws <- popMethods::popReconstruct_count_space_parameters(
+      draws = draws,
+      settings = settings,
+      parameters = count_parameters,
+      value_col = "value",
+      quiet = TRUE
+    )
+  )
+  testthat::expect_true(all(count_parameters %in% names(draws)))
   testthat::expect_equal("list", class(draws))
   testthat::expect_equal("data.table", unique(sapply(draws, class)[1, ]))
 
@@ -90,6 +122,7 @@ testthat::test_that("the original popReconstruct model works in stan", {
     hyperparameters = hyperparameters,
     settings = settings,
     software = "stan",
+    count_parameters = c("live_births", "net_migrants"),
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
 })
@@ -100,7 +133,8 @@ testthat::test_that("the original popReconstruct model works in tmb", {
     data = demCore::burkina_faso_data,
     hyperparameters = hyperparameters,
     settings = settings,
-    software = "tmb"
+    software = "tmb",
+    count_parameters = c("live_births", "net_migrants")
   )
 })
 
@@ -108,7 +142,8 @@ testthat::test_that("sampling from the original popReconstruct model prior works
   test_prior(
     inputs = demCore::burkina_faso_initial_estimates,
     hyperparameters = hyperparameters,
-    settings = settings
+    settings = settings,
+    count_parameters = c("live_births", "net_migrants")
   )
 })
 
@@ -133,6 +168,7 @@ testthat::test_that("the popReconstruct model (with aggregate data) works in sta
     hyperparameters = hyperparameters,
     settings = settings,
     software = "stan",
+    count_parameters = c("live_births", "net_migrants"),
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
 })
@@ -143,7 +179,8 @@ testthat::test_that("the popReconstruct model (with aggregate data) works in tmb
     data = aggregated_data,
     hyperparameters = hyperparameters,
     settings = settings,
-    software = "tmb"
+    software = "tmb",
+    count_parameters = c("live_births", "net_migrants")
   )
 })
 
@@ -169,6 +206,7 @@ testthat::test_that("the popReconstruct (immigration/emigration)  model works in
     hyperparameters = new_hyperparameters,
     settings = settings,
     software = "stan",
+    count_parameters = c("live_births", "immigrants", "emigrants"),
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
 })
@@ -179,7 +217,8 @@ testthat::test_that("the popReconstruct model (immigration/emigration) works in 
     data = demCore::burkina_faso_data,
     hyperparameters = new_hyperparameters,
     settings = settings,
-    software = "tmb"
+    software = "tmb",
+    count_parameters = c("live_births", "immigrants", "emigrants")
   )
 })
 
@@ -187,7 +226,8 @@ testthat::test_that("sampling from popReconstruct (immigration/emigration) model
   test_prior(
     inputs = new_inputs,
     hyperparameters = new_hyperparameters,
-    settings = settings
+    settings = settings,
+    count_parameters = c("live_births", "immigrants", "emigrants")
   )
 })
 
@@ -218,7 +258,6 @@ hyperparameters_mx_ax$mx$beta <- 0.000109
 hyperparameters_mx_ax$non_terminal_ax <- hyperparameters_mx_ax$mx
 hyperparameters_mx_ax$terminal_ax <- hyperparameters_mx_ax$mx
 
-
 testthat::test_that("the popReconstruct (mx & ax) model works in stan", {
   test_fit(
     inputs = new_inputs,
@@ -226,7 +265,8 @@ testthat::test_that("the popReconstruct (mx & ax) model works in stan", {
     hyperparameters = hyperparameters_mx_ax,
     settings = settings,
     software = "stan",
-    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
+    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3,
+    count_parameters = c("live_births", "deaths", "net_migrants")
   )
 })
 
@@ -236,7 +276,8 @@ testthat::test_that("the popReconstruct model (mx & ax) works in tmb", {
     data = demCore::burkina_faso_data,
     hyperparameters = hyperparameters_mx_ax,
     settings = settings,
-    software = "tmb"
+    software = "tmb",
+    count_parameters = c("live_births", "deaths", "net_migrants")
   )
 })
 
@@ -244,7 +285,8 @@ testthat::test_that("sampling from popReconstruct (mx & ax) model prior works", 
   test_prior(
     inputs = new_inputs,
     hyperparameters = hyperparameters_mx_ax,
-    settings = settings
+    settings = settings,
+    count_parameters = c("live_births", "deaths", "net_migrants")
   )
 })
 
@@ -266,6 +308,7 @@ testthat::test_that("the popReconstruct (mx) model works in stan", {
     hyperparameters = hyperparameters_mx,
     settings = settings_mx,
     software = "stan",
+    count_parameters = c("live_births", "deaths", "net_migrants"),
     chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
   )
 })
@@ -276,7 +319,8 @@ testthat::test_that("the popReconstruct model (mx) works in tmb", {
     data = demCore::burkina_faso_data,
     hyperparameters = hyperparameters_mx,
     settings = settings_mx,
-    software = "tmb"
+    software = "tmb",
+    count_parameters = c("live_births", "deaths", "net_migrants")
   )
 })
 
@@ -284,6 +328,7 @@ testthat::test_that("sampling from popReconstruct (mx) model prior works", {
   test_prior(
     inputs = new_inputs,
     hyperparameters = hyperparameters_mx,
-    settings = settings_mx
+    settings = settings_mx,
+    count_parameters = c("live_births", "deaths", "net_migrants")
   )
 })
