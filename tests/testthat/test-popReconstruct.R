@@ -242,6 +242,7 @@ lt[, value := NULL]
 lt[is.infinite(age_end), c("qx", "ax") := list(1, 5)]
 id_cols <- c("year_start", "year_end", "sex", "age_start", "age_end")
 demCore::lifetable(lt, id_cols = id_cols)
+lt[, age_length := NULL]
 
 # add inputs for mx and ax
 new_inputs <- copy(demCore::burkina_faso_initial_estimates)
@@ -329,6 +330,62 @@ testthat::test_that("sampling from popReconstruct (mx) model prior works", {
     inputs = new_inputs,
     hyperparameters = hyperparameters_mx,
     settings = settings_mx,
+    count_parameters = c("live_births", "deaths", "net_migrants")
+  )
+})
+
+# Test popReconstruct with mx, ax (ages_mortality = ages) -----------------
+
+# collapse life table inputs to have the same age groups as other parameters
+mapping <- data.table(age_start = settings$ages)
+hierarchyUtils::gen_end(mapping, id_cols = "age_start", col_stem = "age")
+lt <- demCore::agg_lt(
+  dt = lt, id_cols = id_cols,
+  age_mapping = mapping, quiet = TRUE,
+  present_agg_severity = "none"
+)
+hierarchyUtils::gen_length(lt, col_stem = "age")
+lt[, mx := demCore::qx_ax_to_mx(qx, ax, age_length)]
+
+# add inputs for mx and ax
+new_inputs <- copy(demCore::burkina_faso_initial_estimates)
+new_inputs$mx <- lt[, .SD, .SDcols = c(id_cols, "mx")]
+setnames(new_inputs$mx, "mx", "value")
+new_inputs$ax <- lt[, .SD, .SDcols = c(id_cols, "ax")]
+setnames(new_inputs$ax, "ax", "value")
+new_inputs$survival <- NULL
+
+new_settings <- copy(settings)
+new_settings$ages_mortality <- new_settings$ages
+
+testthat::test_that("the popReconstruct (mx & ax) model works in stan (ages_mortality = ages)", {
+  test_fit(
+    inputs = new_inputs,
+    data = demCore::burkina_faso_data,
+    hyperparameters = hyperparameters_mx_ax,
+    settings = new_settings,
+    software = "stan",
+    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3,
+    count_parameters = c("live_births", "deaths", "net_migrants")
+  )
+})
+
+testthat::test_that("the popReconstruct model (mx & ax) works in tmb (ages_mortality = ages)", {
+  test_fit(
+    inputs = new_inputs,
+    data = demCore::burkina_faso_data,
+    hyperparameters = hyperparameters_mx_ax,
+    settings = new_settings,
+    software = "tmb",
+    count_parameters = c("live_births", "deaths", "net_migrants")
+  )
+})
+
+testthat::test_that("sampling from popReconstruct (mx & ax) model prior works (ages_mortality = ages)", {
+  test_prior(
+    inputs = new_inputs,
+    hyperparameters = hyperparameters_mx_ax,
+    settings = new_settings,
     count_parameters = c("live_births", "deaths", "net_migrants")
   )
 })

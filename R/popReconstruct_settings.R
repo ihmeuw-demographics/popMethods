@@ -93,8 +93,11 @@ create_optional_settings <- function(settings, inputs, data = NULL) {
 
     # determine the expected ages for each component
     expected_ages <- settings$ages
-    if (paste0("ages_", comp) %in% names(settings)) {
-      expected_ages <- settings[[paste0("ages_", comp)]]
+    if (comp == "asfr") expected_ages <- settings$ages_asfr
+    if (comp %in% c("survival", "mx")) expected_ages <- settings$ages_mortality
+    if (comp == "terminal_ax") expected_ages <- max(settings$ages_mortality)
+    if (comp == "non_terminal_ax") {
+      expected_ages <- settings$ages_mortality[settings$ages_mortality != max(settings$ages_mortality)]
     }
 
     if (setting_name %in% names(settings)) {
@@ -283,7 +286,7 @@ create_detailed_settings <- function(settings) {
       ages = settings$ages_mortality[-length(settings$ages_mortality)],
       ages_knots = settings$k_ages_non_terminal_ax,
       B_a = splines::bs(
-        x = settings$ages,
+        x = settings$ages_mortality[-length(settings$ages_mortality)],
         knots = settings$k_ages_non_terminal_ax[-length(settings$k_ages_non_terminal_ax)],
         degree = 1
       ),

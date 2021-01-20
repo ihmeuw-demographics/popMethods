@@ -8,33 +8,42 @@ functions {
   }
 
   matrix make_leslie_matrix(real srb, vector asfr, vector survival, int interval,
-                            int A, int A_f, int A_f_offset, int female) {
+                            int A, int A_m, int A_f, int A_f_offset, int female) {
 
     matrix[A, A] leslie = rep_matrix(0, A, A); // initialize leslie matrix to all zeroes
+    vector[A + 1] survival_full;
+
+    // terminal age group adjustment
+    if (A == A_m) {
+      survival_full[1:A] = survival;
+      survival_full[A + 1] = survival[A];
+    } else {
+      survival_full = survival;
+    }
 
     // first row includes asfr, srb, and birth survival (used to calculate youngest female population age group)
     if (female) {
-      real k = (1 / (1 + srb)) * survival[1] * 0.5 * interval;
-      leslie[1, A_f_offset] = k * asfr[1] * survival[A_f_offset + 1]; // fertility contribution from women aging into the youngest reproductive age group
+      real k = (1 / (1 + srb)) * survival_full[1] * 0.5 * interval;
+      leslie[1, A_f_offset] = k * asfr[1] * survival_full[A_f_offset + 1]; // fertility contribution from women aging into the youngest reproductive age group
       leslie[1, A_f_offset + A_f] = k * asfr[A_f]; // fertility contribution from women starting in the oldest reproductive age group
       for (a_f in 1:(A_f - 1)) {
         int a = a_f + A_f_offset;
-        leslie[1, a] = k * (asfr[a_f] + (asfr[a_f + 1] * survival[a + 1]));
+        leslie[1, a] = k * (asfr[a_f] + (asfr[a_f + 1] * survival_full[a + 1]));
       }
     }
 
     // other rows include survivorship ratios
     for (a in 1:(A - 1)) {
-      leslie[a + 1, a] = survival[a + 1];
+      leslie[a + 1, a] = survival_full[a + 1];
     }
-    leslie[A, A] = survival[A + 1];
+    leslie[A, A] = survival_full[A + 1];
 
     return leslie;
   }
 
   matrix[] ccmpp(matrix srb, matrix asfr, matrix[] baseline, matrix[] survival,
                  matrix[] net_migration, int sexes, int interval,
-                 int A, int A_f, int A_f_offset, int Y) {
+                 int A, int A_m, int A_f, int A_f_offset, int Y) {
 
     // initialize projected population counts
     matrix[A, Y + 1] population[sexes];
@@ -46,7 +55,7 @@ functions {
     for (y in 1:Y) {
       // project female population forward one projection period
       vector[A] half_net_migration_count_f = population[1, , y] .* net_migration[1, , y] * 0.5;
-      matrix[A, A] leslie_f = make_leslie_matrix(srb[1, y], asfr[, y], survival[1, , y], interval, A, A_f, A_f_offset, 1);
+      matrix[A, A] leslie_f = make_leslie_matrix(srb[1, y], asfr[, y], survival[1, , y], interval, A, A_m, A_f, A_f_offset, 1);
       population[1, , y + 1] = (leslie_f * (population[1, , y] + half_net_migration_count_f)) + half_net_migration_count_f;
 
       // project male population forward one projection period
@@ -55,7 +64,7 @@ functions {
         real young_male_pop;
 
         vector[A] half_net_migration_count_m = population[2, , y] .* net_migration[2, , y] * 0.5;
-        matrix[A, A] leslie_m = make_leslie_matrix(srb[1, y], asfr[, y], survival[2, , y], interval, A, A_f, A_f_offset, 0);
+        matrix[A, A] leslie_m = make_leslie_matrix(srb[1, y], asfr[, y], survival[2, , y], interval, A, A_m, A_f, A_f_offset, 0);
         population[2, , y + 1] = (leslie_m * (population[2, , y] + half_net_migration_count_m)) + half_net_migration_count_m;
 
         // back-calculate total births in projection period
@@ -70,48 +79,48 @@ functions {
     return(population);
   }
 
-  matrix calculate_nSx(matrix mx, matrix ax, int interval, int A, int Y) {
+  matrix calculate_nSx(matrix mx, matrix ax, int interval, int A_m, int Y) {
     // See demCore for equations https://github.com/ihmeuw-demographics/demCore
-    matrix[A + 1, Y] nSx;
+    matrix[A_m, Y] nSx;
 
     for (y in 1:Y) {
-      vector[A + 1] qx;
-      vector[A + 1] px;
-      vector[A + 1] lx;
-      vector[A + 1] dx;
-      vector[A + 1] nLx;
-      vector[A + 1] Tx;
+      vector[A_m] qx;
+      vector[A_m] px;
+      vector[A_m] lx;
+      vector[A_m] dx;
+      vector[A_m] nLx;
+      vector[A_m] Tx;
 
       // calculate qx
       qx = (interval * mx[, y]) ./ (1 + ((interval - ax[, y]) .* mx[, y]));
-      qx[A + 1] = 1;
+      qx[A_m] = 1;
 
       // calculate px
       px = 1 - qx;
 
       // calculate lx
       lx[1] = 1;
-      for (a in 2:(A + 1)) {
+      for (a in 2:A_m) {
         lx[a] = lx[a - 1] * px[a - 1];
       }
 
       // calculate dx
-      dx[1:A] = lx[1:A] - lx[2:(A + 1)];
-      dx[A + 1] = lx[A + 1];
+      dx[1:(A_m - 1)] = lx[1:(A_m - 1)] - lx[2:A_m];
+      dx[A_m] = lx[A_m];
 
       // calculate nLx
-      nLx[1:A] = (interval * lx[2:(A + 1)]) + (ax[1:A, y] .* dx[1:A]);
-      nLx[A + 1] = lx[A + 1] / mx[A + 1, y];
+      nLx[1:(A_m - 1)] = (interval * lx[2:A_m]) + (ax[1:(A_m - 1), y] .* dx[1:(A_m - 1)]);
+      nLx[A_m] = lx[A_m] / mx[A_m, y];
 
       // calculate Tx
-      for (a in 1:(A + 1)) {
-        Tx[a] = sum(nLx[a:(A + 1)]);
+      for (a in 1:A_m) {
+        Tx[a] = sum(nLx[a:A_m]);
       }
 
       // calculate Sx
       nSx[1, y] = nLx[1] / (interval * lx[1]);
-      nSx[2:A, y] = nLx[2:A] ./ nLx[1:(A - 1)];
-      nSx[A + 1, y] = Tx[A + 1] / Tx[A];
+      nSx[2:(A_m - 1), y] = nLx[2:(A_m - 1)] ./ nLx[1:(A_m - 2)];
+      nSx[A_m, y] = Tx[A_m] / Tx[A_m - 1];
     }
     return(nSx);
   }
@@ -141,6 +150,7 @@ data {
   int<lower = 1, upper = 2> sexes; // number of sexes (1 for female only, 2 for female and male)
   int interval; // age and year interval
   int A; // number of age groups to estimate for
+  int A_m; // number of age groups to estimate for mortality parameters
   int A_f; // number of reproductive age groups to estimate for
   int A_f_offset; // number of younger age groups that are not included in the reproductive ages
   int Y; // number of year intervals in projection period
@@ -184,9 +194,9 @@ data {
   matrix[1, Y] input_log_srb; // input sex ratio at birth
   matrix[A_f, Y] input_log_asfr; // input age-specific fertility rates
   matrix[A, 1] input_log_baseline[sexes]; // input baseline populations
-  matrix[A + 1, Y] input_logit_survival[sexes]; // input survival proportions
-  matrix[A + 1, Y] input_log_mx[sexes]; // input mortality rate
-  matrix[A, Y] input_bounded_logit_non_terminal_ax[sexes]; // input ax for non-terminal age groups
+  matrix[A_m, Y] input_logit_survival[sexes]; // input survival proportions
+  matrix[A_m, Y] input_log_mx[sexes]; // input mortality rate
+  matrix[A_m - 1, Y] input_bounded_logit_non_terminal_ax[sexes]; // input ax for non-terminal age groups
   matrix[1, Y] input_log_terminal_ax[sexes]; // input ax for terminal age group
   matrix[A, Y] input_net_migration[sexes]; // input net migration proportions
   matrix[A, Y] input_log_immigration[sexes]; // input immigration proportions
@@ -207,17 +217,17 @@ data {
   int N_k_t_survival;
   matrix[Y, N_k_t_survival] B_t_survival;
   int N_k_a_survival;
-  matrix[A + 1, N_k_a_survival] B_a_survival;
+  matrix[A_m, N_k_a_survival] B_a_survival;
 
   int N_k_t_mx;
   matrix[Y, N_k_t_mx] B_t_mx;
   int N_k_a_mx;
-  matrix[A + 1, N_k_a_mx] B_a_mx;
+  matrix[A_m, N_k_a_mx] B_a_mx;
 
   int N_k_t_non_terminal_ax;
   matrix[Y, N_k_t_non_terminal_ax] B_t_non_terminal_ax;
   int N_k_a_non_terminal_ax;
-  matrix[A, N_k_a_non_terminal_ax] B_a_non_terminal_ax;
+  matrix[A_m - 1, N_k_a_non_terminal_ax] B_a_non_terminal_ax;
 
   int N_k_t_terminal_ax;
   matrix[Y, N_k_t_terminal_ax] B_t_terminal_ax;
@@ -279,9 +289,9 @@ transformed parameters {
   matrix[1, Y] spline_offset_log_srb = rep_matrix(0, 1, Y);
   matrix[A_f, Y] spline_offset_log_asfr = rep_matrix(0, A_f, Y);
   matrix[A, 1] spline_offset_log_baseline[sexes] = rep_array(rep_matrix(0, A, 1), sexes);
-  matrix[A + 1, Y] spline_offset_logit_survival[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
-  matrix[A + 1, Y] spline_offset_log_mx[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
-  matrix[A, Y] spline_offset_bounded_logit_non_terminal_ax[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix[A_m, Y] spline_offset_logit_survival[sexes] = rep_array(rep_matrix(0, A_m, Y), sexes);
+  matrix[A_m, Y] spline_offset_log_mx[sexes] = rep_array(rep_matrix(0, A_m, Y), sexes);
+  matrix[A_m - 1, Y] spline_offset_bounded_logit_non_terminal_ax[sexes] = rep_array(rep_matrix(0, A_m - 1, Y), sexes);
   matrix[1, Y] spline_offset_log_terminal_ax[sexes] = rep_array(rep_matrix(0, 1, Y), sexes);
   matrix[A, Y] spline_offset_net_migration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
   matrix[A, Y] spline_offset_log_immigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
@@ -291,11 +301,11 @@ transformed parameters {
   matrix<lower = 0>[1, Y] srb = rep_matrix(0, 1, Y);
   matrix<lower = 0>[A_f, Y] asfr = rep_matrix(0, A_f, Y);
   matrix<lower = 0>[A, 1] baseline[sexes] = rep_array(rep_matrix(0, A, 1), sexes);
-  matrix<lower = 0, upper = 1>[A + 1, Y] survival[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
-  matrix<lower = 0>[A + 1, Y] mx[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
-  matrix<lower = 0, upper = interval>[A, Y] non_terminal_ax[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
+  matrix<lower = 0, upper = 1>[A_m, Y] survival[sexes] = rep_array(rep_matrix(0, A_m, Y), sexes);
+  matrix<lower = 0>[A_m, Y] mx[sexes] = rep_array(rep_matrix(0, A_m, Y), sexes);
+  matrix<lower = 0, upper = interval>[A_m - 1, Y] non_terminal_ax[sexes] = rep_array(rep_matrix(0, A_m - 1, Y), sexes);
   matrix<lower = 0>[1, Y] terminal_ax[sexes] = rep_array(rep_matrix(0, 1, Y), sexes);
-  matrix<lower = 0>[A + 1, Y] ax[sexes] = rep_array(rep_matrix(0, A + 1, Y), sexes);
+  matrix<lower = 0>[A_m, Y] ax[sexes] = rep_array(rep_matrix(0, A_m, Y), sexes);
   matrix[A, Y] net_migration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
   matrix<lower = 0>[A, Y] immigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
   matrix<lower = 0>[A, Y] emigration[sexes] = rep_array(rep_matrix(0, A, Y), sexes);
@@ -347,7 +357,7 @@ transformed parameters {
       non_terminal_ax[s] = bounded_inv_logit(input_bounded_logit_non_terminal_ax[s] + spline_offset_bounded_logit_non_terminal_ax[s], 0, interval);
       terminal_ax[s] = exp(input_log_terminal_ax[s] + spline_offset_log_terminal_ax[s]);
       ax[s] = append_row(non_terminal_ax[s], terminal_ax[s]);
-      survival[s] = calculate_nSx(mx[s], ax[s], interval, A, Y);
+      survival[s] = calculate_nSx(mx[s], ax[s], interval, A_m, Y);
     }
     if (estimate_net_migration) {
       net_migration[s] = input_net_migration[s] + spline_offset_net_migration[s];
@@ -361,7 +371,7 @@ transformed parameters {
   // Level 2 (ccmpp)
   // project population with most detailed age groups
   population = ccmpp(srb, asfr, baseline, survival, net_migration,
-                     sexes, interval, A, A_f, A_f_offset, Y);
+                     sexes, interval, A, A_m, A_f, A_f_offset, Y);
   // aggregate to census age groups
   population_input_groups = aggregate(population, input_pop_year_index,
                                       input_pop_age_index, input_pop_sex_index,
