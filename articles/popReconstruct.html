@@ -214,20 +214,20 @@
 <span class="co">#&gt; net_migration               9      data.table list</span>
 <span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">summary_prior</span><span class="op">$</span><span class="va">population</span><span class="op">)</span>
 <span class="co">#&gt;    year    sex age_start age_end method     mean     q2.5    q97.5</span>
-<span class="co">#&gt; 1: 1960 female         0       5  Prior 391585.7 219239.5 551087.0</span>
-<span class="co">#&gt; 2: 1960 female         5      10  Prior 295433.4 212014.8 427232.3</span>
-<span class="co">#&gt; 3: 1960 female        10      15  Prior 263063.8 192455.2 389253.5</span>
-<span class="co">#&gt; 4: 1960 female        15      20  Prior 246125.8 180477.7 331112.5</span>
-<span class="co">#&gt; 5: 1960 female        20      25  Prior 208733.1 144313.2 273216.2</span>
-<span class="co">#&gt; 6: 1960 female        25      30  Prior 174391.6 119082.6 231361.3</span>
+<span class="co">#&gt; 1: 1960 female         0       5  Prior 397002.7 289187.6 597694.2</span>
+<span class="co">#&gt; 2: 1960 female         5      10  Prior 295751.7 207282.4 408782.3</span>
+<span class="co">#&gt; 3: 1960 female        10      15  Prior 263385.9 181068.6 351833.1</span>
+<span class="co">#&gt; 4: 1960 female        15      20  Prior 249847.0 183158.9 344482.4</span>
+<span class="co">#&gt; 5: 1960 female        20      25  Prior 207609.3 139700.2 286674.9</span>
+<span class="co">#&gt; 6: 1960 female        25      30  Prior 177078.1 124639.0 233196.8</span>
 <span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">draws_prior</span><span class="op">$</span><span class="va">population</span><span class="op">)</span>
 <span class="co">#&gt;    year    sex age_start age_end    value draw method</span>
 <span class="co">#&gt; 1: 1960 female         0       5 404054.1    1  Prior</span>
-<span class="co">#&gt; 2: 1960 female         0       5 389268.3    2  Prior</span>
-<span class="co">#&gt; 3: 1960 female         0       5 219547.8    3  Prior</span>
-<span class="co">#&gt; 4: 1960 female         0       5 329019.6    4  Prior</span>
-<span class="co">#&gt; 5: 1960 female         0       5 493664.2    5  Prior</span>
-<span class="co">#&gt; 6: 1960 female         0       5 416297.2    6  Prior</span></code></pre></div>
+<span class="co">#&gt; 2: 1960 female         0       5 431341.4    2  Prior</span>
+<span class="co">#&gt; 3: 1960 female         0       5 389268.3    3  Prior</span>
+<span class="co">#&gt; 4: 1960 female         0       5 219547.8    4  Prior</span>
+<span class="co">#&gt; 5: 1960 female         0       5 329019.6    5  Prior</span>
+<span class="co">#&gt; 6: 1960 female         0       5 493664.2    6  Prior</span></code></pre></div>
 </div>
 <div id="fit-the-popreconstruct-model-with-stan" class="section level2">
 <h2 class="hasAnchor">
@@ -323,15 +323,15 @@
 <span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">fit_stan_summary</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span>
 <span class="co">#&gt;                                mean      se_mean           sd          10%</span>
-<span class="co">#&gt; sigma2_asfr[1]          0.012542453 2.415914e-03 0.0148087509 0.0033339274</span>
-<span class="co">#&gt; sigma2_population       0.001357721 1.844938e-05 0.0004038193 0.0009064479</span>
-<span class="co">#&gt; sigma2_survival[1]      0.013008523 1.288982e-03 0.0091279852 0.0045459534</span>
-<span class="co">#&gt; sigma2_net_migration[1] 0.006677565 1.271624e-04 0.0017472727 0.0047025043</span>
+<span class="co">#&gt; sigma2_asfr[1]          0.010820643 1.159739e-03 0.0091133067 0.0035661733</span>
+<span class="co">#&gt; sigma2_population       0.001336889 1.757041e-05 0.0003965118 0.0008973893</span>
+<span class="co">#&gt; sigma2_survival[1]      0.013487797 1.654570e-03 0.0111726104 0.0034548608</span>
+<span class="co">#&gt; sigma2_net_migration[1] 0.006670692 1.119505e-04 0.0017052445 0.0047603695</span>
 <span class="co">#&gt;                                 90%     n_eff     Rhat</span>
-<span class="co">#&gt; sigma2_asfr[1]          0.026034112  37.57283 1.033449</span>
-<span class="co">#&gt; sigma2_population       0.001900039 479.08252 1.003938</span>
-<span class="co">#&gt; sigma2_survival[1]      0.025170147  50.14828 1.043819</span>
-<span class="co">#&gt; sigma2_net_migration[1] 0.009015376 188.80083 1.010621</span></code></pre></div>
+<span class="co">#&gt; sigma2_asfr[1]          0.021424364  61.74919 1.043858</span>
+<span class="co">#&gt; sigma2_population       0.001852912 509.27016 1.002124</span>
+<span class="co">#&gt; sigma2_survival[1]      0.026720876  45.59728 1.043625</span>
+<span class="co">#&gt; sigma2_net_migration[1] 0.008920094 232.01760 1.004554</span></code></pre></div>
 <p>The <a href="https://mc-stan.org/users/interfaces/shinystan">shinystan R package</a> is also useful for being able to quickly look at useful diagnostics for all parameters.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">shinystan</span><span class="fu">::</span><span class="fu">launch_shinystan</span><span class="op">(</span><span class="va">fit_stan</span><span class="op">)</span></code></pre></div>
