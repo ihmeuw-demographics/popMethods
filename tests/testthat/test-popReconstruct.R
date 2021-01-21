@@ -1,3 +1,7 @@
+
+# load stan helper functions for testing
+rstan::expose_stan_functions(stanmodel = stanmodels$popReconstruct)
+
 set.seed(1)
 
 settings = list(
@@ -164,6 +168,80 @@ test_prior <- function(inputs, hyperparameters, settings, count_parameters) {
   testthat::expect_equal("data.table", unique(sapply(summary_prior, class)[1, ]))
 }
 
+test_ccmpp_function <- function(inputs, settings) {
+
+  population_demCore <- demCore::ccmpp(
+    inputs = inputs,
+    settings = settings
+  )
+  population_demCore <- demCore:::dt_to_matrix(
+    dt = population_demCore,
+    id_cols = c("year", "sex", "age_start", "age_end")
+  )
+  names(population_demCore) <- NULL
+  for (i in 1:length(population_demCore)) {
+    dimnames(population_demCore[[i]]) <- NULL
+
+  }
+
+  # convert from data.tables to matrices and list of matrices
+  inputs_matrix <- lapply(inputs, function(dt) {
+    input_matrix <- demCore:::dt_to_matrix(
+      dt = dt,
+      id_cols = setdiff(names(dt), "value")
+    )
+    return(input_matrix)
+  })
+  population_stan <- ccmpp(
+    srb = inputs_matrix$srb,
+    asfr = inputs_matrix$asfr,
+    baseline = inputs_matrix$baseline,
+    survival = inputs_matrix$survival,
+    net_migration = inputs_matrix$net_migration,
+    sexes = length(settings$sexes),
+    interval = unique(diff(settings$ages)),
+    A = length(settings$ages),
+    A_m = length(settings$ages_mortality),
+    A_f = length(settings$ages_asfr),
+    A_f_offset = sum(settings$ages < min(settings$ages_asfr)),
+    Y = length(settings$years)
+  )
+
+  testthat::expect_equal(population_demCore, population_stan)
+}
+
+test_nSx_function <- function(lt, settings) {
+
+  id_cols <- c("year_start", "year_end", "sex", "age_start", "age_end")
+
+  survival_demCore <- demCore::nSx_from_lx_nLx_Tx(
+    dt = lt,
+    id_cols = id_cols,
+    terminal_age = max(settings$ages)
+  )
+  survival_demCore <- demCore:::dt_to_matrix(
+    dt = survival_demCore[, .SD, .SDcols = c(id_cols, "nSx")],
+    id_cols = id_cols, value_col = "nSx"
+  )$female
+  dimnames(survival_demCore) <- NULL
+
+  survival_stan <- calculate_nSx(
+    mx = demCore:::dt_to_matrix(
+      dt = lt[, .SD, .SDcols = c(id_cols, "mx")],
+      id_cols = id_cols, value_col = "mx"
+    )$female,
+    ax = demCore:::dt_to_matrix(
+      dt = lt[, .SD, .SDcols = c(id_cols, "ax")],
+      id_cols = id_cols, value_col = "ax"
+    )$female,
+    interval = unique(diff(settings$ages)),
+    A_m = length(settings$ages_mortality),
+    Y = length(settings$years)
+  )
+
+  testthat::expect_equal(survival_demCore, survival_stan)
+}
+
 # Test the original popReconstruct model specification --------------------
 
 test_combinations(
@@ -174,6 +252,34 @@ test_combinations(
   settings = settings,
   count_parameters = c("live_births", "net_migrants")
 )
+
+# Test stan function for ccmpp --------------------------------------------
+
+description <- "ccmpp in stan gives the same output as the equivalent demCore function"
+testthat::test_that("ccmpp in stan gives the same output as the equivalent demCore function", {
+  test_ccmpp_function(
+    inputs = demCore::burkina_faso_initial_estimates,
+    settings = settings
+  )
+})
+
+# run same tests but with ages_mortality = ages
+new_settings <- copy(settings)
+new_settings[["ages_mortality"]] <- new_settings[["ages"]]
+
+new_inputs <- copy(demCore::burkina_faso_initial_estimates)
+new_inputs[["survival"]] <- new_inputs[["survival"]][age_start <= max(new_settings$ages)]
+new_inputs[["survival"]] <- new_inputs[["survival"]][
+  age_start == max(new_settings$ages), age_end := Inf
+]
+
+description <- "ccmpp in stan gives the same output as the equivalent demCore function when 'ages_mortality=ages'"
+testthat::test_that(description, {
+  test_ccmpp_function(
+    inputs = new_inputs,
+    settings = new_settings
+  )
+})
 
 # Test popReconstruct with aggregate population data ----------------------
 
@@ -260,6 +366,8 @@ test_combinations(
   count_parameters = c("live_births", "deaths", "net_migrants")
 )
 
+test_nSx_function(lt, settings)
+
 # Test popReconstruct with mx ---------------------------------------------
 
 hyperparameters_mx <- copy(hyperparameters)
@@ -312,3 +420,6 @@ test_combinations(
   settings = new_settings,
   count_parameters = c("live_births", "deaths", "net_migrants")
 )
+
+demCore::lifetable(lt, id_cols)
+test_nSx_function(lt, new_settings)
