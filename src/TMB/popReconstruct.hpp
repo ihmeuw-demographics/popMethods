@@ -94,7 +94,8 @@ matrix<Type> make_leslie_matrix(Type srb, array<Type> asfr, array<Type> survival
   matrix<Type> leslie;
   leslie.setZero(A, A);
 
-  // terminal age group adjustment
+  // create `survival_full` with A age groups plus one extra age group
+  // (since `survival` can either be length A or A + 1)
   array<Type> survival_full(A + 1);
   if (A == A_m) {
     for (int a = 0; a < A; a++) {

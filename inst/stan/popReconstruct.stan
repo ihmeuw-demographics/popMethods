@@ -13,7 +13,8 @@ functions {
     matrix[A, A] leslie = rep_matrix(0, A, A); // initialize leslie matrix to all zeroes
     vector[A + 1] survival_full;
 
-    // terminal age group adjustment
+    // create `survival_full` with A age groups plus one extra age group
+    // (since `survival` can either be length A or A + 1)
     if (A == A_m) {
       survival_full[1:A] = survival;
       survival_full[A + 1] = survival[A];
