@@ -1,3 +1,7 @@
+
+# load stan helper functions for testing
+rstan::expose_stan_functions(stanmodel = stanmodels$popReconstruct)
+
 set.seed(1)
 
 settings = list(
@@ -17,6 +21,57 @@ hyperparameters <- list(
 )
 
 # popReconstruct testing helper functions ---------------------------------
+
+test_combinations <- function(desc,
+                              inputs,
+                              data,
+                              hyperparameters,
+                              settings,
+                              software,
+                              count_parameters,
+                              test_software = c("stan", "tmb", "prior")) {
+
+  if ("stan" %in% test_software) {
+    description <- paste(desc, "(stan)")
+    testthat::test_that(description, {
+      test_fit(
+        inputs = inputs,
+        data = data,
+        hyperparameters = hyperparameters,
+        settings = settings,
+        software = "stan",
+        count_parameters = count_parameters,
+        chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
+      )
+    })
+  }
+
+  if ("tmb" %in% test_software) {
+    description <- paste(desc, "(tmb)")
+    testthat::test_that(description, {
+      test_fit(
+        inputs = inputs,
+        data = data,
+        hyperparameters = hyperparameters,
+        settings = settings,
+        software = "tmb",
+        count_parameters = count_parameters
+      )
+    })
+  }
+
+  if ("prior" %in% test_software) {
+    description <- paste(desc, "(prior)")
+    testthat::test_that(description, {
+      test_prior(
+        inputs = inputs,
+        hyperparameters = hyperparameters,
+        settings = settings,
+        count_parameters = count_parameters
+      )
+    })
+  }
+}
 
 test_fit <- function(inputs,
                      data,
@@ -113,37 +168,116 @@ test_prior <- function(inputs, hyperparameters, settings, count_parameters) {
   testthat::expect_equal("data.table", unique(sapply(summary_prior, class)[1, ]))
 }
 
+test_ccmpp_function <- function(inputs, settings) {
+
+  population_demCore <- demCore::ccmpp(
+    inputs = inputs,
+    settings = settings
+  )
+  population_demCore <- demCore:::dt_to_matrix(
+    dt = population_demCore,
+    id_cols = c("year", "sex", "age_start", "age_end")
+  )
+  names(population_demCore) <- NULL
+  for (i in 1:length(population_demCore)) {
+    dimnames(population_demCore[[i]]) <- NULL
+
+  }
+
+  # convert from data.tables to matrices and list of matrices
+  inputs_matrix <- lapply(inputs, function(dt) {
+    input_matrix <- demCore:::dt_to_matrix(
+      dt = dt,
+      id_cols = setdiff(names(dt), "value")
+    )
+    return(input_matrix)
+  })
+  population_stan <- ccmpp(
+    srb = inputs_matrix$srb,
+    asfr = inputs_matrix$asfr,
+    baseline = inputs_matrix$baseline,
+    survival = inputs_matrix$survival,
+    net_migration = inputs_matrix$net_migration,
+    sexes = length(settings$sexes),
+    interval = unique(diff(settings$ages)),
+    A = length(settings$ages),
+    A_m = length(settings$ages_mortality),
+    A_f = length(settings$ages_asfr),
+    A_f_offset = sum(settings$ages < min(settings$ages_asfr)),
+    Y = length(settings$years)
+  )
+
+  testthat::expect_equal(population_demCore, population_stan)
+}
+
+test_nSx_function <- function(lt, settings) {
+
+  id_cols <- c("year_start", "year_end", "sex", "age_start", "age_end")
+
+  survival_demCore <- demCore::nSx_from_lx_nLx_Tx(
+    dt = lt,
+    id_cols = id_cols,
+    terminal_age = max(settings$ages)
+  )
+  survival_demCore <- demCore:::dt_to_matrix(
+    dt = survival_demCore[, .SD, .SDcols = c(id_cols, "nSx")],
+    id_cols = id_cols, value_col = "nSx"
+  )$female
+  dimnames(survival_demCore) <- NULL
+
+  survival_stan <- calculate_nSx(
+    mx = demCore:::dt_to_matrix(
+      dt = lt[, .SD, .SDcols = c(id_cols, "mx")],
+      id_cols = id_cols, value_col = "mx"
+    )$female,
+    ax = demCore:::dt_to_matrix(
+      dt = lt[, .SD, .SDcols = c(id_cols, "ax")],
+      id_cols = id_cols, value_col = "ax"
+    )$female,
+    interval = unique(diff(settings$ages)),
+    A_m = length(settings$ages_mortality),
+    Y = length(settings$years)
+  )
+
+  testthat::expect_equal(survival_demCore, survival_stan)
+}
+
 # Test the original popReconstruct model specification --------------------
 
-testthat::test_that("the original popReconstruct model works in stan", {
-  test_fit(
+test_combinations(
+  desc = "the original popReconstruct model works",
+  inputs = demCore::burkina_faso_initial_estimates,
+  data = demCore::burkina_faso_data,
+  hyperparameters = hyperparameters,
+  settings = settings,
+  count_parameters = c("live_births", "net_migrants")
+)
+
+# Test stan function for ccmpp --------------------------------------------
+
+description <- "ccmpp in stan gives the same output as the equivalent demCore function"
+testthat::test_that("ccmpp in stan gives the same output as the equivalent demCore function", {
+  test_ccmpp_function(
     inputs = demCore::burkina_faso_initial_estimates,
-    data = demCore::burkina_faso_data,
-    hyperparameters = hyperparameters,
-    settings = settings,
-    software = "stan",
-    count_parameters = c("live_births", "net_migrants"),
-    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
+    settings = settings
   )
 })
 
-testthat::test_that("the original popReconstruct model works in tmb", {
-  test_fit(
-    inputs = demCore::burkina_faso_initial_estimates,
-    data = demCore::burkina_faso_data,
-    hyperparameters = hyperparameters,
-    settings = settings,
-    software = "tmb",
-    count_parameters = c("live_births", "net_migrants")
-  )
-})
+# run same tests but with ages_mortality = ages
+new_settings <- copy(settings)
+new_settings[["ages_mortality"]] <- new_settings[["ages"]]
 
-testthat::test_that("sampling from the original popReconstruct model prior works", {
-  test_prior(
-    inputs = demCore::burkina_faso_initial_estimates,
-    hyperparameters = hyperparameters,
-    settings = settings,
-    count_parameters = c("live_births", "net_migrants")
+new_inputs <- copy(demCore::burkina_faso_initial_estimates)
+new_inputs[["survival"]] <- new_inputs[["survival"]][age_start <= max(new_settings$ages)]
+new_inputs[["survival"]] <- new_inputs[["survival"]][
+  age_start == max(new_settings$ages), age_end := Inf
+]
+
+description <- "ccmpp in stan gives the same output as the equivalent demCore function when 'ages_mortality=ages'"
+testthat::test_that(description, {
+  test_ccmpp_function(
+    inputs = new_inputs,
+    settings = new_settings
   )
 })
 
@@ -161,28 +295,15 @@ aggregated_data$population <- hierarchyUtils::agg(
   mapping = age_mapping
 )
 
-testthat::test_that("the popReconstruct model (with aggregate data) works in stan", {
-  test_fit(
-    inputs = demCore::burkina_faso_initial_estimates,
-    data = aggregated_data,
-    hyperparameters = hyperparameters,
-    settings = settings,
-    software = "stan",
-    count_parameters = c("live_births", "net_migrants"),
-    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
-  )
-})
-
-testthat::test_that("the popReconstruct model (with aggregate data) works in tmb", {
-  test_fit(
-    inputs = demCore::burkina_faso_initial_estimates,
-    data = aggregated_data,
-    hyperparameters = hyperparameters,
-    settings = settings,
-    software = "tmb",
-    count_parameters = c("live_births", "net_migrants")
-  )
-})
+test_combinations(
+  desc = "the popReconstruct model with aggregate data works",
+  inputs = demCore::burkina_faso_initial_estimates,
+  data = aggregated_data,
+  hyperparameters = hyperparameters,
+  settings = settings,
+  count_parameters = c("live_births", "net_migrants"),
+  test_software = c("stan", "tmb")
+)
 
 # Test popReconstruct with immigration/emigration -------------------------
 
@@ -199,37 +320,14 @@ new_hyperparameters$immigration <- hyperparameters$net_migration
 new_hyperparameters$emigration <- hyperparameters$net_migration
 new_hyperparameters$net_migration <- NULL
 
-testthat::test_that("the popReconstruct (immigration/emigration)  model works in stan", {
-  test_fit(
-    inputs = new_inputs,
-    data = demCore::burkina_faso_data,
-    hyperparameters = new_hyperparameters,
-    settings = settings,
-    software = "stan",
-    count_parameters = c("live_births", "immigrants", "emigrants"),
-    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
-  )
-})
-
-testthat::test_that("the popReconstruct model (immigration/emigration) works in tmb", {
-  test_fit(
-    inputs = new_inputs,
-    data = demCore::burkina_faso_data,
-    hyperparameters = new_hyperparameters,
-    settings = settings,
-    software = "tmb",
-    count_parameters = c("live_births", "immigrants", "emigrants")
-  )
-})
-
-testthat::test_that("sampling from popReconstruct (immigration/emigration) model prior works", {
-  test_prior(
-    inputs = new_inputs,
-    hyperparameters = new_hyperparameters,
-    settings = settings,
-    count_parameters = c("live_births", "immigrants", "emigrants")
-  )
-})
+test_combinations(
+  desc = "the popReconstruct model with immigration/emigration parameters works",
+  inputs = new_inputs,
+  data = demCore::burkina_faso_data,
+  hyperparameters = new_hyperparameters,
+  settings = settings,
+  count_parameters = c("live_births", "immigrants", "emigrants")
+)
 
 # Test popReconstruct with mx, ax -----------------------------------------
 
@@ -242,6 +340,7 @@ lt[, value := NULL]
 lt[is.infinite(age_end), c("qx", "ax") := list(1, 5)]
 id_cols <- c("year_start", "year_end", "sex", "age_start", "age_end")
 demCore::lifetable(lt, id_cols = id_cols)
+lt[, age_length := NULL]
 
 # add inputs for mx and ax
 new_inputs <- copy(demCore::burkina_faso_initial_estimates)
@@ -258,37 +357,16 @@ hyperparameters_mx_ax$mx$beta <- 0.000109
 hyperparameters_mx_ax$non_terminal_ax <- hyperparameters_mx_ax$mx
 hyperparameters_mx_ax$terminal_ax <- hyperparameters_mx_ax$mx
 
-testthat::test_that("the popReconstruct (mx & ax) model works in stan", {
-  test_fit(
-    inputs = new_inputs,
-    data = demCore::burkina_faso_data,
-    hyperparameters = hyperparameters_mx_ax,
-    settings = settings,
-    software = "stan",
-    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3,
-    count_parameters = c("live_births", "deaths", "net_migrants")
-  )
-})
+test_combinations(
+  desc = "the popReconstruct model with mx/ax parameters works",
+  inputs = new_inputs,
+  data = demCore::burkina_faso_data,
+  hyperparameters = hyperparameters_mx_ax,
+  settings = settings,
+  count_parameters = c("live_births", "deaths", "net_migrants")
+)
 
-testthat::test_that("the popReconstruct model (mx & ax) works in tmb", {
-  test_fit(
-    inputs = new_inputs,
-    data = demCore::burkina_faso_data,
-    hyperparameters = hyperparameters_mx_ax,
-    settings = settings,
-    software = "tmb",
-    count_parameters = c("live_births", "deaths", "net_migrants")
-  )
-})
-
-testthat::test_that("sampling from popReconstruct (mx & ax) model prior works", {
-  test_prior(
-    inputs = new_inputs,
-    hyperparameters = hyperparameters_mx_ax,
-    settings = settings,
-    count_parameters = c("live_births", "deaths", "net_migrants")
-  )
-})
+test_nSx_function(lt, settings)
 
 # Test popReconstruct with mx ---------------------------------------------
 
@@ -301,34 +379,47 @@ hyperparameters_mx$survival <- NULL
 settings_mx <- copy(settings)
 settings_mx$fixed_parameters <- c("non_terminal_ax", "terminal_ax")
 
-testthat::test_that("the popReconstruct (mx) model works in stan", {
-  test_fit(
-    inputs = new_inputs,
-    data = demCore::burkina_faso_data,
-    hyperparameters = hyperparameters_mx,
-    settings = settings_mx,
-    software = "stan",
-    count_parameters = c("live_births", "deaths", "net_migrants"),
-    chains = 1, warmup = 100, iter = 200, thin = 2, seed = 3
-  )
-})
+test_combinations(
+  desc = "the popReconstruct model with mx parameter works",
+  inputs = new_inputs,
+  data = demCore::burkina_faso_data,
+  hyperparameters = hyperparameters_mx,
+  settings = settings_mx,
+  count_parameters = c("live_births", "deaths", "net_migrants")
+)
 
-testthat::test_that("the popReconstruct model (mx) works in tmb", {
-  test_fit(
-    inputs = new_inputs,
-    data = demCore::burkina_faso_data,
-    hyperparameters = hyperparameters_mx,
-    settings = settings_mx,
-    software = "tmb",
-    count_parameters = c("live_births", "deaths", "net_migrants")
-  )
-})
+# Test popReconstruct with mx, ax (ages_mortality = ages) -----------------
 
-testthat::test_that("sampling from popReconstruct (mx) model prior works", {
-  test_prior(
-    inputs = new_inputs,
-    hyperparameters = hyperparameters_mx,
-    settings = settings_mx,
-    count_parameters = c("live_births", "deaths", "net_migrants")
-  )
-})
+# collapse life table inputs to have the same age groups as other parameters
+mapping <- data.table(age_start = settings$ages)
+hierarchyUtils::gen_end(mapping, id_cols = "age_start", col_stem = "age")
+lt <- demCore::agg_lt(
+  dt = lt, id_cols = id_cols,
+  age_mapping = mapping, quiet = TRUE,
+  present_agg_severity = "none"
+)
+hierarchyUtils::gen_length(lt, col_stem = "age")
+lt[, mx := demCore::qx_ax_to_mx(qx, ax, age_length)]
+
+# add inputs for mx and ax
+new_inputs <- copy(demCore::burkina_faso_initial_estimates)
+new_inputs$mx <- lt[, .SD, .SDcols = c(id_cols, "mx")]
+setnames(new_inputs$mx, "mx", "value")
+new_inputs$ax <- lt[, .SD, .SDcols = c(id_cols, "ax")]
+setnames(new_inputs$ax, "ax", "value")
+new_inputs$survival <- NULL
+
+new_settings <- copy(settings)
+new_settings$ages_mortality <- new_settings$ages
+
+test_combinations(
+  desc = "the popReconstruct model with mx/ax parameters & 'ages_mortality=ages' works",
+  inputs = new_inputs,
+  data = demCore::burkina_faso_data,
+  hyperparameters = hyperparameters_mx_ax,
+  settings = new_settings,
+  count_parameters = c("live_births", "deaths", "net_migrants")
+)
+
+demCore::lifetable(lt, id_cols)
+test_nSx_function(lt, new_settings)

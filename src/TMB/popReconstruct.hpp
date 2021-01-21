@@ -28,59 +28,59 @@ array<Type> bounded_inv_logit(array<Type> x, int domain_lower, int domain_upper)
 template<class Type>
 matrix<Type> calculate_nSx(array<Type> mx, array<Type> non_terminal_ax,
                            array<Type> terminal_ax, int interval,
-                           int A, int Y, int sexes) {
+                           int A_m, int Y, int sexes) {
 
   array<Type> nSx(mx.dim);
 
   for (int s = 0; s < sexes; s++) {
     for (int y = 0; y < Y; y++) {
-      vector<Type> qx(A + 1);
-      vector<Type> px(A + 1);
-      vector<Type> lx(A + 1);
-      vector<Type> dx(A + 1);
-      vector<Type> nLx(A + 1);
-      vector<Type> Tx(A + 1);
+      vector<Type> qx(A_m);
+      vector<Type> px(A_m);
+      vector<Type> lx(A_m);
+      vector<Type> dx(A_m);
+      vector<Type> nLx(A_m);
+      vector<Type> Tx(A_m);
 
       // calculate qx
-      for (int a = 0; a < A; a++) {
+      for (int a = 0; a < (A_m - 1); a++) {
         qx(a) = (interval * mx.col(s).col(y)(a)) / (1 + ((interval - non_terminal_ax.col(s).col(y)(a)) * mx.col(s).col(y)(a)));
       }
-      qx(A + 1) = 1;
+      qx(A_m - 1) = 1;
 
       // calculate px
       px = 1 - qx;
 
       // calculate lx
       lx(0) = 1;
-      for (int a = 1; a < (A + 1); a++) {
+      for (int a = 1; a < A_m; a++) {
         lx(a) = lx(a - 1) * px (a - 1);
       }
 
       // calculate dx
-      for (int a = 0; a < A; a++) {
+      for (int a = 0; a < (A_m - 1); a++) {
         dx(a) = lx(a) - lx(a + 1);
       }
-      dx(A) = lx(A);
+      dx(A_m - 1) = lx(A_m - 1);
 
       // calculate nLx
-      for (int a = 0; a < A; a++) {
+      for (int a = 0; a < (A_m - 1); a++) {
         nLx(a) = (interval * lx(a + 1)) + (non_terminal_ax.col(s).col(y)(a) * dx(a));
       }
-      nLx(A) = lx(A) / mx.col(s).col(y)(A);
+      nLx(A_m - 1) = lx(A_m - 1) / mx.col(s).col(y)((A_m - 1));
 
       // calculate Tx
-      for (int a1 = 0; a1 < (A + 1); a1++) {
-        for (int a2 = a1; a2 < (A + 1); a2++) {
+      for (int a1 = 0; a1 < A_m; a1++) {
+        for (int a2 = a1; a2 < A_m; a2++) {
           Tx(a1) += nLx(a2);
         }
       }
 
       // calculate Sx
       nSx.col(s).col(y)(0) = nLx(0) / (interval * lx(0));
-      for (int a = 1; a < A; a++) {
+      for (int a = 1; a < (A_m - 1); a++) {
         nSx.col(s).col(y)(a) = nLx(a) / nLx(a - 1);
       }
-      nSx.col(s).col(y)(A) = Tx(A) / Tx(A - 1);
+      nSx.col(s).col(y)(A_m - 1) = Tx(A_m - 1) / Tx(A_m - 2);
     }
   }
   return(nSx);
@@ -88,28 +88,40 @@ matrix<Type> calculate_nSx(array<Type> mx, array<Type> non_terminal_ax,
 
 template<class Type>
 matrix<Type> make_leslie_matrix(Type srb, array<Type> asfr, array<Type> survival,
-                                int interval, int A, int A_f, int A_f_offset, bool female) {
+                                int interval, int A, int A_m, int A_f, int A_f_offset, bool female) {
 
   // initialize leslie matrix to all zeroes
   matrix<Type> leslie;
   leslie.setZero(A, A);
 
+  // create `survival_full` with A age groups plus one extra age group
+  // (since `survival` can either be length A or A + 1)
+  array<Type> survival_full(A + 1);
+  if (A == A_m) {
+    for (int a = 0; a < A; a++) {
+      survival_full(a) = survival(a);
+    }
+    survival_full(A) = survival(A - 1);
+  } else {
+    survival_full = survival;
+  }
+
   // first row includes asfr, srb, and birth survival (used to calculate youngest female population age group)
   if (female) {
-    Type k = (1 / (1 + srb)) * survival(0) * 0.5 * interval;
-    leslie(0, A_f_offset - 1) = k * asfr(0)* survival(A_f_offset); // fertility contribution from women aging into the youngest reproductive age group
+    Type k = (1 / (1 + srb)) * survival_full(0) * 0.5 * interval;
+    leslie(0, A_f_offset - 1) = k * asfr(0)* survival_full(A_f_offset); // fertility contribution from women aging into the youngest reproductive age group
     leslie(0, A_f_offset + A_f - 1) = k * asfr(A_f - 1); // fertility contribution from women starting in the oldest reproductive age group
     for (int a_f = 0; a_f < A_f - 1; a_f++) {
       int a = a_f + A_f_offset;
-      leslie(0, a) = k * (asfr(a_f) + (asfr(a_f + 1) * survival(a + 1)));
+      leslie(0, a) = k * (asfr(a_f) + (asfr(a_f + 1) * survival_full(a + 1)));
     }
   }
 
   // other rows include survivorship ratios
   for (int a = 0; a < A - 1; a++) {
-    leslie(a + 1, a) = survival(a + 1);
+    leslie(a + 1, a) = survival_full(a + 1);
   }
-  leslie(A - 1, A - 1) = survival(A);
+  leslie(A - 1, A - 1) = survival_full(A);
 
   return leslie;
 }
@@ -117,7 +129,7 @@ matrix<Type> make_leslie_matrix(Type srb, array<Type> asfr, array<Type> survival
 template<class Type>
 array<Type> ccmpp(array<Type> srb, array<Type> asfr, array<Type> baseline,
                   array<Type> survival, array<Type> net_migration,
-                  int sexes, int interval, int A, int A_f, int A_f_offset, int Y) {
+                  int sexes, int interval, int A, int A_m, int A_f, int A_f_offset, int Y) {
 
   // initialize projected population counts
   array<Type> population(A, Y + 1, sexes);
@@ -129,13 +141,13 @@ array<Type> ccmpp(array<Type> srb, array<Type> asfr, array<Type> baseline,
   for (int y = 0; y < Y; y++) {
     // project female population forward one projection period
     matrix<Type> half_net_migration_count_f = population.col(0).col(y) * net_migration.col(0).col(y) * 0.5;
-    matrix<Type> leslie_f = make_leslie_matrix(srb(0, y), asfr.col(y), survival.col(0).col(y), interval, A, A_f, A_f_offset, true);
+    matrix<Type> leslie_f = make_leslie_matrix(srb(0, y), asfr.col(y), survival.col(0).col(y), interval, A, A_m, A_f, A_f_offset, true);
     population.col(0).col(y + 1) = (leslie_f * (matrix<Type>(population.col(0).col(y)) + half_net_migration_count_f) + half_net_migration_count_f);
 
     // project male population forward one projection period
     if (sexes == 2) {
       matrix<Type> half_net_migration_count_m = population.col(1).col(y) * net_migration.col(1).col(y) * 0.5;
-      matrix<Type> leslie_m = make_leslie_matrix(srb(0, y), asfr.col(y), survival.col(1).col(y), interval, A, A_f, A_f_offset, false);
+      matrix<Type> leslie_m = make_leslie_matrix(srb(0, y), asfr.col(y), survival.col(1).col(y), interval, A, A_m, A_f, A_f_offset, false);
       population.col(1).col(y + 1) = (leslie_m * (matrix<Type>(population.col(1).col(y)) + half_net_migration_count_m) + half_net_migration_count_m);
 
       // back-calculate total births in projection period
@@ -181,6 +193,7 @@ Type popReconstruct(objective_function<Type>* obj) {
   DATA_INTEGER(sexes); // number of sexes (1 for female only, 2 for female and male)
   DATA_INTEGER(interval); // age and year interval
   DATA_INTEGER(A); // number of age groups to estimate for
+  DATA_INTEGER(A_m); // number of age groups to estimate for mortality parameters
   DATA_INTEGER(A_f); // number of reproductive age groups to estimate for
   DATA_INTEGER(A_f_offset); // number of younger age groups that are not included in the reproductive ages
   DATA_INTEGER(Y); // number of year intervals in projection period
@@ -424,7 +437,7 @@ Type popReconstruct(objective_function<Type>* obj) {
     mx = exp(input_log_mx + spline_offset_log_mx);
     non_terminal_ax = bounded_inv_logit(input_bounded_logit_non_terminal_ax + spline_offset_bounded_logit_non_terminal_ax, 0, interval);
     terminal_ax = exp(input_log_terminal_ax + spline_offset_log_terminal_ax);
-    survival = calculate_nSx(mx, non_terminal_ax, terminal_ax, interval, A, Y, sexes);
+    survival = calculate_nSx(mx, non_terminal_ax, terminal_ax, interval, A_m, Y, sexes);
   }
   if (estimate_net_migration) {
     net_migration = input_net_migration + spline_offset_net_migration;
@@ -438,7 +451,7 @@ Type popReconstruct(objective_function<Type>* obj) {
   array<Type> population(A, Y + 1, sexes);
   // project population with most detailed age groups
   population = ccmpp(srb, asfr, baseline, survival, net_migration,
-                     sexes, interval, A, A_f, A_f_offset, Y);
+                     sexes, interval, A, A_m, A_f, A_f_offset, Y);
   // aggregate to census age groups
   vector<Type> population_input_groups(N_pop);
   population_input_groups = aggregate(population, input_pop_year_index,
